@@ -63,6 +63,20 @@ object GameOps {
 
     }
 
+    def bottomDraw(playerId: PlayerId): (Game, Event) = game match {
+      case sg @ StartedGame(players, deck, nextPlayer, _, _, _) =>
+        if (hasTurn(players, nextPlayer, playerId)) {
+          val player = players.find(_.id == playerId).get
+          val draw = deck.cards.takeRight(1)
+          val newDeck = Deck(deck.cards.dropRight(1))
+          val newHand = player.copy(hand = player.hand ++ draw)
+          sg.copy(players = players.updated(nextPlayer, newHand), deck = newDeck) ->
+            draw.headOption.map(c => GotCard(playerId, c.id)).getOrElse(InvalidAction)
+        } else
+          game -> InvalidAction
+
+    }
+
     def endTurn(playerId: PlayerId): (Game, Event) = game match {
       case sg @ StartedGame(players, _, currentPlayer, direction, _, _) =>
         if (hasTurn(players, currentPlayer, playerId)) {
@@ -150,6 +164,8 @@ object GameOps {
           leave(playerId)
         case SwitchDirection(playerId) =>
           reverse(playerId)
+        case BottomDraw(playerId) =>
+          bottomDraw(playerId)
         case _ =>
           game -> InvalidAction
       }

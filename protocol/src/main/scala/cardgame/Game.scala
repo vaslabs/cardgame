@@ -46,6 +46,7 @@ sealed trait PlayingGameAction extends Action {
 
 case class Shuffle(player: PlayerId) extends PlayingGameAction
 case class DrawCard(player: PlayerId) extends PlayingGameAction
+case class BottomDraw(player: PlayerId) extends PlayingGameAction
 case class PlayCard(card: CardId, player: PlayerId) extends PlayingGameAction
 case class BorrowCard(player: PlayerId) extends PlayingGameAction
 case class StealCard(player: PlayerId, from: PlayerId, cardIndex: Int) extends PlayingGameAction

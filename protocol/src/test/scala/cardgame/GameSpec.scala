@@ -22,19 +22,20 @@ class GameSpec extends AnyWordSpec with Matchers {
 
   val randomizer: IO[Int] = IO.pure(0)
 
-  val deck: Deck = Deck(
-    List(
-      HiddenCard(CardId(UUID.randomUUID()), URI.create("http://localhost:8080/card1")),
-      HiddenCard(CardId(UUID.randomUUID()), URI.create("http://localhost:8080/card2")),
-      HiddenCard(CardId(UUID.randomUUID()), URI.create("http://localhost:8080/card3"))
-    )
-  )
+
 
   def initialState(commands: LazyList[Action]) = GameState(
     commands, StartingGame(List.empty), randomizer
   )
 
   "a game" must {
+    val deck: Deck = Deck(
+      List(
+        HiddenCard(CardId(UUID.randomUUID()), URI.create("http://localhost:8080/card1")),
+        HiddenCard(CardId(UUID.randomUUID()), URI.create("http://localhost:8080/card2")),
+        HiddenCard(CardId(UUID.randomUUID()), URI.create("http://localhost:8080/card3"))
+      )
+    )
 
     "accept players" in {
 
@@ -111,7 +112,32 @@ class GameSpec extends AnyWordSpec with Matchers {
       )
 
       GameState(commands, game, randomizer).start.toList mustBe events
+    }
 
+    "draw from the bottom" in {
+      val cardToPlayP1 = player1.hand(1)
+      val drawCardP1 = deckCards.last
+      val drawCardP2 =  deckCards(deckCards.size - 2)
+      val cardToPlayP2 = player2.hand.head
+      val commands = LazyList(
+        PlayCard(cardToPlayP1.id, player1.id),
+        BottomDraw(player1.id),
+        EndTurn(player1.id),
+        PlayCard(cardToPlayP2.id, player2.id),
+        BottomDraw(player2.id),
+        EndTurn(player2.id)
+      )
+
+      val events = List(
+        PlayedCard(VisibleCard(cardToPlayP1.id, cardToPlayP1.image), player1.id),
+        GotCard(player1.id, drawCardP1.id),
+        NextPlayer(player2.id),
+        PlayedCard(VisibleCard(cardToPlayP2.id, cardToPlayP2.image), player2.id),
+        GotCard(player2.id, drawCardP2.id),
+        NextPlayer(player3.id)
+      )
+
+      GameState(commands, game, randomizer).start.toList mustBe events
     }
   }
 
@@ -120,3 +146,9 @@ class GameSpec extends AnyWordSpec with Matchers {
     URI.create(s"http://localhost:8080/card${Random.nextInt(100)}")
   )
 }
+
+/*
+List(PlayedCard(VisibleCard(CardId(54031e21-4582-49f6-b5e9-e63ed0ce0d46),http://localhost:8080/card70),PlayerId(1)), GotCard(PlayerId(1),CardId(1de713ba-ebe4-425c-80fd-bce5b5d6343c)), NextPlayer(PlayerId(2)), PlayedCard(VisibleCard(CardId(2d563e67-fe7f-4dfa-a0fd-394259462b9b),http://localhost:8080/card54),PlayerId(2)), GotCard(PlayerId(2),CardId(03b8bc9b-03e5-489e-9e84-9ec561dc28ee)), NextPlayer(PlayerId(3)))
+List(PlayedCard(VisibleCard(CardId(54031e21-4582-49f6-b5e9-e63ed0ce0d46),http://localhost:8080/card70),PlayerId(1)), GotCard(PlayerId(1),CardId(cb7cdafd-22c9-4a8b-a861-4d0bf609591e)), NextPlayer(PlayerId(2)), PlayedCard(VisibleCard(CardId(2d563e67-fe7f-4dfa-a0fd-394259462b9b),http://localhost:8080/card54),PlayerId(2)), GotCard(PlayerId(2),CardId(a8f3ff56-77f6-4249-ad92-0b3ca43c2100)), NextPlayer(PlayerId(3))) (GameSpec.scala:139)
+
+ */
