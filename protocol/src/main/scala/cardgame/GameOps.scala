@@ -171,17 +171,15 @@ object GameOps {
 
     def returnCard(player: PlayerId, card: CardId): (Game, Event) =  game match {
       case sg @ StartedGame(players, deck, currentPlayer, _, _, _) =>
-        Either.cond(
-          hasTurn(players, currentPlayer, player),
+        ifHasTurn(players, currentPlayer, player,
           {
             val borrowedDeck = deck.returnCard(card)
             borrowedDeck.map {
               d => sg.copy(deck = d) -> ReturnedCard(card)
             }.getOrElse(sg -> InvalidAction)
-          }
-          ,
-          sg -> InvalidAction
-        ).merge
+          },
+          sg
+        )
     }
 
     def steal(player: PlayerId, from: PlayerId, cardIndex: Int): (Game, Event) = game match {
