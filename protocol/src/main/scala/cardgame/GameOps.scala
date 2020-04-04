@@ -186,8 +186,7 @@ object GameOps {
 
     def steal(player: PlayerId, from: PlayerId, cardIndex: Int): (Game, Event) = game match {
       case sg @ StartedGame(players, _, currentPlayer, _, _, _) =>
-        Either.cond(
-          hasTurn(players, currentPlayer, player),
+        ifHasTurn(players, currentPlayer, player,
           {
             val playerTo = players.find(_.id == player).get
             val position = players.indexOf(playerTo)
@@ -200,8 +199,8 @@ object GameOps {
             val playerWithCard = cardToSteal.map(c => playerTo.copy(hand = playerTo.hand :+ c)).getOrElse(playerTo)
             sg.copy(players = players.updated(position, playerWithCard)) -> event
           },
-          sg -> InvalidAction
-        ).merge
+          sg
+        )
       case other =>
         other -> InvalidAction
     }
