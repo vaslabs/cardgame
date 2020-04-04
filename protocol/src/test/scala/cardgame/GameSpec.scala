@@ -7,6 +7,8 @@ import cats.effect.IO
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import scala.util.Random
+
 class GameSpec extends AnyWordSpec with Matchers {
 
   private def joinPlayers() = List(
@@ -77,4 +79,44 @@ class GameSpec extends AnyWordSpec with Matchers {
 
   }
 
+
+  "players" can {
+    val player1Cards = List(aCard, aCard, aCard, aCard)
+    val player2Cards = List(aCard, aCard, aCard)
+    val player3Cards = List(aCard, aCard)
+    val deckCards = List(aCard, aCard, aCard, aCard)
+    val player1 = PlayingPlayer(PlayerId("1"), player1Cards)
+    val player2 = PlayingPlayer(PlayerId("2"), player2Cards)
+    val player3 = PlayingPlayer(PlayerId("3"), player3Cards)
+    val players = List(
+      player1,
+      player2,
+      player3
+    )
+    val game = StartedGame(players, Deck(deckCards), 0, Clockwise, List.empty, DiscardPile.empty)
+
+    "change the direction" in {
+      val cardToPlay = player1.hand(1)
+      val commands = LazyList(
+        PlayCard(cardToPlay.id, player1.id),
+        SwitchDirection(player1.id),
+        EndTurn(player1.id),
+        DrawCard(player3.id)
+      )
+      val events = List(
+        PlayedCard(VisibleCard(cardToPlay.id, cardToPlay.image), player1.id),
+        NewDirection(AntiClockwise),
+        NextPlayer(player3.id),
+        GotCard( player3.id, deckCards.head.id)
+      )
+
+      GameState(commands, game, randomizer).start.toList mustBe events
+
+    }
+  }
+
+  private def aCard = HiddenCard(
+    CardId(UUID.randomUUID()),
+    URI.create(s"http://localhost:8080/card${Random.nextInt(100)}")
+  )
 }

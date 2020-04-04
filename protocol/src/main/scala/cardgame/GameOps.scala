@@ -77,7 +77,7 @@ object GameOps {
     private def shift(numberOfPlayers: Int, currentPlayerIndex: Int, direction: Direction): Int =
       direction match {
         case Clockwise => shiftRight(numberOfPlayers, currentPlayerIndex)
-        case AntiClockWise => shiftLeft(numberOfPlayers, currentPlayerIndex)
+        case AntiClockwise => shiftLeft(numberOfPlayers, currentPlayerIndex)
       }
 
     private def shiftRight(size: Int, current: Int): Int =
@@ -123,6 +123,15 @@ object GameOps {
           game -> InvalidAction
     }
 
+    def reverse(playerId: PlayerId): (Game, Event) = game match {
+      case sg @ StartedGame(players, _, currentPlayer, direction,_,_) =>
+        Either.cond(
+          hasTurn(players, currentPlayer, playerId),
+          sg.copy(direction = direction.reverse) -> NewDirection(direction.reverse),
+          sg -> InvalidAction
+        ).merge
+    }
+
     def action(gameAction: Action, randomizer: IO[Int]): (Game, Event) = {
       gameAction match {
         case jg: JoinGame =>
@@ -139,6 +148,8 @@ object GameOps {
           endTurn(playerId)
         case Leave(playerId) =>
           leave(playerId)
+        case SwitchDirection(playerId) =>
+          reverse(playerId)
         case _ =>
           game -> InvalidAction
       }

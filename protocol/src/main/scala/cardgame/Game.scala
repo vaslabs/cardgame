@@ -58,9 +58,15 @@ case class EndTurn(player: PlayerId) extends PlayingGameAction
 
 case object EndGame extends Action
 
-sealed trait Direction
-case object Clockwise extends Direction
-case object AntiClockWise extends Direction
+sealed trait Direction {
+  def reverse: Direction
+}
+case object Clockwise extends Direction {
+  override def reverse: Direction = AntiClockwise
+}
+case object AntiClockwise extends Direction {
+  override def reverse: Direction = Clockwise
+}
 
 sealed trait Card {
   def id: CardId

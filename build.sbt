@@ -36,7 +36,7 @@ lazy val service = (project in file("service"))
 
 lazy val repo = sys.env.get("CI_REGISTRY")
 lazy val dockerSettings = Seq(
-  (packageName in Docker) := "scala-demo",
+  (packageName in Docker) := "cardgame-generator",
   dockerBaseImage := "openjdk:8u191-jre-alpine3.8",
   dockerRepository := repo,
   dockerUsername := Some("eng"),
