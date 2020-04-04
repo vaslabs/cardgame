@@ -178,6 +178,28 @@ object GameOps {
         ).merge
     }
 
+    def steal(player: PlayerId, from: PlayerId, cardIndex: Int): (Game, Event) = game match {
+      case sg @ StartedGame(players, _, currentPlayer, _, _, _) =>
+        Either.cond(
+          hasTurn(players, currentPlayer, player),
+          {
+            val playerTo = players.find(_.id == player).get
+            val position = players.indexOf(playerTo)
+            val playerFrom = players.find(_.id == from)
+            val cardToSteal = playerFrom.flatMap {
+              p =>
+                p.hand.lift(cardIndex)
+            }
+            val event = cardToSteal.map(MoveCard(_, from, player)).getOrElse(InvalidAction)
+            val playerWithCard = cardToSteal.map(c => playerTo.copy(hand = playerTo.hand :+ c)).getOrElse(playerTo)
+            sg.copy(players = players.updated(position, playerWithCard)) -> event
+          },
+          sg -> InvalidAction
+        ).merge
+      case other =>
+        other -> InvalidAction
+    }
+
     def action(gameAction: Action, randomizer: IO[Int]): (Game, Event) = {
       gameAction match {
         case jg: JoinGame =>
@@ -202,6 +224,8 @@ object GameOps {
           borrow(player)
         case ReturnCard(playerId, cardId) =>
           returnCard(playerId, cardId)
+        case StealCard(player, from, cardIndex) =>
+          steal(player, from, cardIndex)
         case _ =>
           game -> InvalidAction
       }

@@ -159,6 +159,20 @@ class GameSpec extends AnyWordSpec with Matchers {
 
       GameState(commands, game, randomizer).start.toList mustBe expectedEvents
     }
+
+    "steal cards from another player" in {
+      val stolenCard = player2.hand.last
+      val commands = LazyList(
+        StealCard(player1.id, player2.id, player2.hand.size - 1),
+        PlayCard(stolenCard.id, player1.id)
+      )
+      val expectedEvents = LazyList(
+        MoveCard(stolenCard, player2.id, player1.id),
+        PlayedCard(VisibleCard(stolenCard.id, stolenCard.image), player1.id)
+      )
+
+      GameState(commands, game, randomizer).start.toList mustBe expectedEvents
+    }
   }
 
   private def aCard = HiddenCard(
