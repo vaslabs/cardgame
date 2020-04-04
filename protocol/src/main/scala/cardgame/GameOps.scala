@@ -51,39 +51,43 @@ object GameOps {
 
     def draw(playerId: PlayerId): (Game, Event) = game match {
       case sg @ StartedGame(players, deck, nextPlayer, _, _, _) =>
-        if (hasTurn(players, nextPlayer, playerId)) {
-          val player = players.find(_.id == playerId).get
-          val draw = deck.cards.take(1)
-          val newDeck = Deck(deck.cards.drop(1), List.empty)
-          val newHand = player.copy(hand = player.hand ++ draw)
-          sg.copy(players = players.updated(nextPlayer, newHand), deck = newDeck) ->
-            draw.headOption.map(c => GotCard(playerId, c.id)).getOrElse(InvalidAction)
-        } else
-          game -> InvalidAction
-
+        ifHasTurn(players, nextPlayer, playerId, {
+            val player = players.find(_.id == playerId).get
+            val draw = deck.cards.take(1)
+            val newDeck = Deck(deck.cards.drop(1), List.empty)
+            val newHand = player.copy(hand = player.hand ++ draw)
+            sg.copy(players = players.updated(nextPlayer, newHand), deck = newDeck) ->
+              draw.headOption.map(c => GotCard(playerId, c.id)).getOrElse(InvalidAction)
+          },
+          game
+        )
     }
 
     def bottomDraw(playerId: PlayerId): (Game, Event) = game match {
       case sg @ StartedGame(players, deck, nextPlayer, _, _, _) =>
-        if (hasTurn(players, nextPlayer, playerId)) {
-          val player = players.find(_.id == playerId).get
-          val draw = deck.cards.takeRight(1)
-          val newDeck = Deck(deck.cards.dropRight(1), List.empty)
-          val newHand = player.copy(hand = player.hand ++ draw)
-          sg.copy(players = players.updated(nextPlayer, newHand), deck = newDeck) ->
-            draw.headOption.map(c => GotCard(playerId, c.id)).getOrElse(InvalidAction)
-        } else
-          game -> InvalidAction
-
+        ifHasTurn(players, nextPlayer, playerId,
+          {
+            val player = players.find(_.id == playerId).get
+            val draw = deck.cards.takeRight(1)
+            val newDeck = Deck(deck.cards.dropRight(1), List.empty)
+            val newHand = player.copy(hand = player.hand ++ draw)
+            sg.copy(players = players.updated(nextPlayer, newHand), deck = newDeck) ->
+              draw.headOption.map(c => GotCard(playerId, c.id)).getOrElse(InvalidAction)
+          },
+          game
+        )
     }
 
     def endTurn(playerId: PlayerId): (Game, Event) = game match {
       case sg @ StartedGame(players, _, currentPlayer, direction, _, _) =>
-        if (hasTurn(players, currentPlayer, playerId)) {
-          val nextPlayer = shift(players.size, currentPlayer, direction)
-          sg.copy(nextPlayer = nextPlayer) -> NextPlayer(players(nextPlayer).id)
-        } else
-          game -> InvalidAction
+        ifHasTurn(
+          players, currentPlayer, playerId,
+          {
+            val nextPlayer = shift(players.size, currentPlayer, direction)
+            sg.copy(nextPlayer = nextPlayer) -> NextPlayer(players(nextPlayer).id)
+          },
+          game
+        )
       case _ =>
         game -> InvalidAction
     }
@@ -112,53 +116,55 @@ object GameOps {
 
     def leave(playerId: PlayerId): (Game, Event) = game match {
       case sg @ StartedGame(players, _, currentPlayer, _, _, _) =>
-        if (hasTurn(players, currentPlayer, playerId)) {
-          sg.copy(players.filterNot(_.id == playerId)) -> PlayerLeft(playerId)
-        } else
-          game -> InvalidAction
+          ifHasTurn(
+            players, currentPlayer, playerId,
+            sg.copy(players.filterNot(_.id == playerId)) -> PlayerLeft(playerId),
+            sg
+          )
       case _ =>
         game -> InvalidAction
     }
 
     def play(playerId: PlayerId, cardId: CardId): (Game, Event) = game match {
       case sg @ StartedGame(players, _, currentPlayer, _, _, _) =>
-        if (hasTurn(players, currentPlayer, playerId)) {
-          val player = players.find(_.id == playerId).get
-          val event = player.hand.find(_.id == cardId).map {
-            card => PlayedCard(VisibleCard(cardId, card.image), playerId)
-          }.getOrElse(InvalidAction)
-          sg.copy(
-            players.updated(
-              currentPlayer,
-              player.copy(hand = player.hand.filterNot(_.id == cardId))
-            )
-          ) -> event
-        } else
-          game -> InvalidAction
+        ifHasTurn(
+          players, currentPlayer, playerId,
+          {
+            val player = players.find(_.id == playerId).get
+            val event = player.hand.find(_.id == cardId).map {
+              card => PlayedCard(VisibleCard(cardId, card.image), playerId)
+            }.getOrElse(InvalidAction)
+            sg.copy(
+              players.updated(
+                currentPlayer,
+                player.copy(hand = player.hand.filterNot(_.id == cardId))
+              )
+            ) -> event
+          },
+          sg
+        )
     }
 
     def reverse(playerId: PlayerId): (Game, Event) = game match {
       case sg @ StartedGame(players, _, currentPlayer, direction,_,_) =>
-        Either.cond(
-          hasTurn(players, currentPlayer, playerId),
+        ifHasTurn(players, currentPlayer, playerId,
           sg.copy(direction = direction.reverse) -> NewDirection(direction.reverse),
-          sg -> InvalidAction
-        ).merge
+          sg
+        )
       case other =>
         other -> InvalidAction
     }
 
     def borrow(player: PlayerId): (Game, Event) = game match {
       case sg @ StartedGame(players, deck, currentPlayer, _, _, _) =>
-        Either.cond(
-          hasTurn(players, currentPlayer, player), {
+        ifHasTurn(players, currentPlayer, player, {
             val borrowDeck = deck.borrow
             borrowDeck.borrowed.lastOption.map {
               c => sg.copy(deck = borrowDeck) -> BorrowedCard(c.id, player)
             }.getOrElse(sg -> InvalidAction)
           },
-          sg -> InvalidAction
-        ).merge
+          sg
+        )
       case other =>
         other -> InvalidAction
     }
@@ -230,5 +236,12 @@ object GameOps {
           game -> InvalidAction
       }
     }
+
+    private def ifHasTurn(p: List[PlayingPlayer], ind: Int, pId: PlayerId, t: => (Game, Event), defaultGame: Game): (Game, Event) =
+      Either.cond(
+        hasTurn(p, ind, pId),
+        t,
+        defaultGame -> InvalidAction
+      ).merge
   }
 }
