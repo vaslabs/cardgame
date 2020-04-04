@@ -23,7 +23,8 @@ class GameSpec extends AnyWordSpec with Matchers {
   val deck: Deck = Deck(
     List(
       HiddenCard(CardId(UUID.randomUUID()), URI.create("http://localhost:8080/card1")),
-      HiddenCard(CardId(UUID.randomUUID()), URI.create("http://localhost:8080/card2"))
+      HiddenCard(CardId(UUID.randomUUID()), URI.create("http://localhost:8080/card2")),
+      HiddenCard(CardId(UUID.randomUUID()), URI.create("http://localhost:8080/card3"))
     )
   )
 
@@ -48,7 +49,11 @@ class GameSpec extends AnyWordSpec with Matchers {
           StartGame(deck),
           DrawCard(PlayerId("123")),
           EndTurn(PlayerId("123")),
-          DrawCard(PlayerId("124")) ,
+          DrawCard(PlayerId("124")),
+          EndTurn(PlayerId("124")),
+          PlayCard( deck.cards(0).id, PlayerId("123")),
+          EndTurn(PlayerId("123")),
+          DrawCard(PlayerId("124")),
           Leave(PlayerId("124")),
           EndGame
         )
@@ -59,6 +64,10 @@ class GameSpec extends AnyWordSpec with Matchers {
         GotCard(PlayerId("123"), deck.cards(0).id),
         NextPlayer(PlayerId("124")),
         GotCard(PlayerId("124"), deck.cards(1).id),
+        NextPlayer(PlayerId("123")),
+        PlayedCard(VisibleCard(deck.cards(0).id, deck.cards(0).image), PlayerId("123")),
+        NextPlayer(PlayerId("124")),
+        GotCard(PlayerId("124"), deck.cards(2).id),
         PlayerLeft(PlayerId("124")),
         GameFinished(PlayerId("123"))
       )

@@ -46,7 +46,7 @@ sealed trait PlayingGameAction extends Action {
 
 case class Shuffle(player: PlayerId) extends PlayingGameAction
 case class DrawCard(player: PlayerId) extends PlayingGameAction
-case class ThrowCard(card: Card, player: PlayerId) extends PlayingGameAction
+case class PlayCard(card: CardId, player: PlayerId) extends PlayingGameAction
 case class BorrowCard(player: PlayerId) extends PlayingGameAction
 case class StealCard(player: PlayerId, from: PlayerId, cardIndex: Int) extends PlayingGameAction
 case class AskForCard(card: Card, player: PlayerId, from: Player) extends PlayingGameAction
@@ -64,9 +64,10 @@ case object AntiClockWise extends Direction
 
 sealed trait Card {
   def id: CardId
+  def image: URI
 }
 case class HiddenCard(id: CardId, image: URI) extends Card
-case class ShownCard(id: CardId, image: URI) extends Card
+case class VisibleCard(id: CardId, image: URI) extends Card
 
 case class CardId(value: UUID)
 
@@ -82,6 +83,7 @@ case class GameStarted(startingPlayer: PlayerId) extends Event
 case class NextPlayer(player: PlayerId) extends Event
 case class GotCard(playerId: PlayerId, cardId: CardId) extends Event
 case class DeckShuffled(deck: Deck) extends Event
+case class PlayedCard(card: VisibleCard, playerId: PlayerId) extends Event
 case class MoveCard(card: Card, from: PlayerId, to: PlayerId) extends Event
 case class NewDirection(direction: Direction) extends Event
 case class PlayerLeft(player: PlayerId) extends Event

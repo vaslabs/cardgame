@@ -9,7 +9,7 @@ case class GameState(gameProgress: LazyList[Action], game: Game, randomizer: IO[
       case _: FinishedGame =>
         None
       case playableGame =>
-        val (game, event) = playableGame.action(action)
+        val (game, event) = playableGame.action(action, randomizer)
         Some(event -> GameState(gameProgress.drop(1), game, randomizer))
     }
 

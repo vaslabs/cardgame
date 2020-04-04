@@ -1,6 +1,7 @@
 package cardgame
 
-import scala.util.Random
+import cats.effect.IO
+
 
 object GameOps {
   implicit final class _GameOps(val game: Game) extends AnyVal {
@@ -15,12 +16,12 @@ object GameOps {
       }
     }
 
-    def start(deck: Deck): (Game, Event) = {
+    def start(deck: Deck, randomizer: IO[Int]): (Game, Event) = {
       game match {
         case StartingGame(players) =>
-          val random = new Random()
+          val random = randomizer.unsafeRunSync()
           val gamePlayers = players.map(j => PlayingPlayer(j.id, List.empty))
-          val startingPlayer = random.nextInt(players.size)
+          val startingPlayer = random
           val startedGame =
             StartedGame(
               gamePlayers,
@@ -101,18 +102,39 @@ object GameOps {
           sg.copy(players.filterNot(_.id == playerId)) -> PlayerLeft(playerId)
         } else
           game -> InvalidAction
+      case _ =>
+        game -> InvalidAction
     }
 
-    def action(gameAction: Action): (Game, Event) = {
+    def play(playerId: PlayerId, cardId: CardId): (Game, Event) = game match {
+      case sg @ StartedGame(players, _, currentPlayer, _, _, _) =>
+        if (hasTurn(players, currentPlayer, playerId)) {
+          val player = players.find(_.id == playerId).get
+          val event = player.hand.find(_.id == cardId).map {
+            card => PlayedCard(VisibleCard(cardId, card.image), playerId)
+          }.getOrElse(InvalidAction)
+          sg.copy(
+            players.updated(
+              currentPlayer,
+              player.copy(hand = player.hand.filterNot(_.id == cardId))
+            )
+          ) -> event
+        } else
+          game -> InvalidAction
+    }
+
+    def action(gameAction: Action, randomizer: IO[Int]): (Game, Event) = {
       gameAction match {
         case jg: JoinGame =>
           join(jg.player)
         case EndGame =>
           end
         case StartGame(deck) =>
-          start(deck)
+          start(deck, randomizer)
         case DrawCard(playerId) =>
           draw(playerId)
+        case PlayCard(cardId: CardId, playerId) =>
+          play( playerId, cardId)
         case EndTurn(playerId) =>
           endTurn(playerId)
         case Leave(playerId) =>
