@@ -49,6 +49,7 @@ case class DrawCard(player: PlayerId) extends PlayingGameAction
 case class BottomDraw(player: PlayerId) extends PlayingGameAction
 case class PlayCard(card: CardId, player: PlayerId) extends PlayingGameAction
 case class BorrowCard(player: PlayerId) extends PlayingGameAction
+case class ReturnCard(player: PlayerId, cardId: CardId) extends PlayingGameAction
 case class StealCard(player: PlayerId, from: PlayerId, cardIndex: Int) extends PlayingGameAction
 case class AskForCard(card: Card, player: PlayerId, from: Player) extends PlayingGameAction
 case class PutCardBack(card: Card, player: PlayerId) extends PlayingGameAction
@@ -78,7 +79,23 @@ case class VisibleCard(id: CardId, image: URI) extends Card
 
 case class CardId(value: UUID)
 
-case class Deck(cards: List[Card])
+case class Deck(cards: List[Card], borrowed: List[Card]) {
+
+  def borrow: Deck =
+    Deck(cards.drop(1), borrowed :+ cards.head)
+
+  def returnCard(cardId: CardId): Option[Deck] = {
+    val toReturn = borrowed.find(_.id == cardId)
+    toReturn.map(
+      c => Deck(cards :+ c, borrowed.filterNot(_.id == cardId))
+    )
+  }
+}
+
+object Deck {
+  def apply(cards: List[Card]): Deck = Deck(cards, List.empty)
+}
+
 case class DiscardPile(cards: List[Card])
 object DiscardPile {
   def empty = DiscardPile(List.empty)
@@ -89,6 +106,8 @@ case class PlayerJoined(playerJoined: PlayerId) extends Event
 case class GameStarted(startingPlayer: PlayerId) extends Event
 case class NextPlayer(player: PlayerId) extends Event
 case class GotCard(playerId: PlayerId, cardId: CardId) extends Event
+case class BorrowedCard(cardId: CardId, playerId: PlayerId) extends Event
+case class ReturnedCard(cardId: CardId) extends Event
 case class DeckShuffled(deck: Deck) extends Event
 case class PlayedCard(card: VisibleCard, playerId: PlayerId) extends Event
 case class MoveCard(card: Card, from: PlayerId, to: PlayerId) extends Event
