@@ -142,7 +142,7 @@ class GameSpec extends AnyWordSpec with Matchers {
 
     "borrow cards from the deck and put them back in any order" in {
       val cardsToBorrow = List(deckCards.head, deckCards(1))
-      println(deckCards)
+
       val commands = LazyList(
         BorrowCard(player1.id),
         BorrowCard(player1.id),
