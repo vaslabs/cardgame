@@ -75,7 +75,7 @@ object Dependencies {
 
     val protocol = Seq(scalatest.core, cats.core, cats.effect)
 
-    val processor = Seq(scalatest.core, akka.testkit, akka.actor, cats.core, cats.effect)
+    val processor = Seq(scalatest.core, akka.testkit, akka.actor, cats.core, cats.effect) ++ circe.all
 
     val service = Seq(tapir.akka, scalatest.core, akka.streams, akka.testkit, cats.effect) ++ tapir.docs ++
       Logback.essentials
