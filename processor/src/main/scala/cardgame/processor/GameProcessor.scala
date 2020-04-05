@@ -3,8 +3,8 @@ package cardgame.processor
 import akka.actor.typed.eventstream.EventStream
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
-import cardgame.{Action, Event, Game}
-import cardgame.GameOps._
+import cardgame.model._
+import cardgame.engine.GameOps._
 import cats.effect.IO
 object GameProcessor {
 

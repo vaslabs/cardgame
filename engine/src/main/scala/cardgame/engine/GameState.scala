@@ -1,6 +1,8 @@
-package cardgame
-import GameOps._
+package cardgame.engine
+
 import cats.effect.IO
+import cardgame.model._
+import cardgame.engine.GameOps._
 
 case class GameState(gameProgress: LazyList[Action], game: Game, randomizer: IO[Int]) {
 

@@ -3,7 +3,7 @@ package cardgame.processor
 import akka.actor.typed.eventstream.EventStream
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
-import cardgame.{Event, PlayerId}
+import cardgame.model.{Event, NextPlayer, PlayerId}
 
 object PlayerEventsReader {
 
@@ -15,11 +15,18 @@ object PlayerEventsReader {
 
   private def readingEvents(id: PlayerId, replyTo: ActorRef[Event]): Behavior[Event] = Behaviors.receiveMessage {
     case msg =>
-      replyTo ! personalise(msg)
+      replyTo ! personalise(msg, id)
       Behaviors.same
   }
 
-  private def personalise(event: Event): Event = event
+  private def personalise(event: Event, playerId: PlayerId): Event = {
+    event match {
+      case NextPlayer(player) if player == playerId =>
+        NextPlayer(PlayerId("You"))
+      case _ =>
+        event
+    }
+  }
 
 
 }

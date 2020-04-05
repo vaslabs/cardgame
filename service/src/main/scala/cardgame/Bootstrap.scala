@@ -1,11 +1,13 @@
-package demo
+package cardgame
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.Materializer
+import cardgame.routes.{Documentation, routes}
+import akka.http.scaladsl.server.Directives._
+import sttp.tapir.swagger.akkahttp.SwaggerAkka
 
 import scala.io.StdIn
-import akka.http.scaladsl.server.Directives._
 
 object Bootstrap extends App {
 
@@ -13,7 +15,13 @@ object Bootstrap extends App {
   implicit val materializer = Materializer(system)
   implicit val executionContext = system.dispatcher
 
-  val bindingFuture = Http().bindAndHandle(routes.documentationRoute ~ routes.additionRoute, "0.0.0.0", 8080)
+  val documentationRoute =
+    new SwaggerAkka(Documentation.openApiYaml).routes
+
+
+
+  val bindingFuture = Http().bindAndHandle(
+    documentationRoute ~ routes.startingGame, "0.0.0.0", 8080)
 
   println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
   StdIn.readLine() // let it run until user presses return

@@ -1,20 +1,22 @@
-package cardgame
+package cardgame.model
 
 import java.net.URI
 import java.util.UUID
+
+case class GameId(value: UUID)
 
 sealed trait Game
 
 case class StartingGame(playersJoined: List[JoiningPlayer]) extends Game
 
 case class StartedGame(
-    players: List[PlayingPlayer],
-    deck: Deck,
-    nextPlayer: Int,
-    direction: Direction,
-    deadPlayers: List[DeadPlayer],
-    discardPile: DiscardPile
-) extends Game
+                        players: List[PlayingPlayer],
+                        deck: Deck,
+                        nextPlayer: Int,
+                        direction: Direction,
+                        deadPlayers: List[DeadPlayer],
+                        discardPile: DiscardPile
+                      ) extends Game
 
 sealed trait FinishedGame extends Game
 
@@ -117,4 +119,3 @@ case object InvalidAction extends Event
 
 case object GameStopped extends Event
 case class GameFinished(winner: PlayerId) extends Event
-

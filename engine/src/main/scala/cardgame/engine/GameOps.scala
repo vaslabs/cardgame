@@ -1,7 +1,7 @@
-package cardgame
+package cardgame.engine
 
 import cats.effect.IO
-
+import cardgame.model._
 
 object GameOps {
   implicit final class _GameOps(val game: Game) extends AnyVal {
@@ -13,6 +13,8 @@ object GameOps {
             game -> PlayerJoined(player.id)
           else
             StartingGame(playersJoined :+ player) -> PlayerJoined(player.id)
+        case _ =>
+          game -> InvalidAction
       }
     }
 
@@ -61,6 +63,8 @@ object GameOps {
           },
           game
         )
+      case _ =>
+        game -> InvalidAction
     }
 
     def bottomDraw(playerId: PlayerId): (Game, Event) = game match {
@@ -76,6 +80,8 @@ object GameOps {
           },
           game
         )
+      case _ =>
+        game -> InvalidAction
     }
 
     def endTurn(playerId: PlayerId): (Game, Event) = game match {
@@ -143,6 +149,8 @@ object GameOps {
           },
           sg
         )
+      case _ =>
+        game -> InvalidAction
     }
 
     def reverse(playerId: PlayerId): (Game, Event) = game match {
@@ -180,6 +188,8 @@ object GameOps {
           },
           sg
         )
+      case _ =>
+        game -> InvalidAction
     }
 
     def steal(player: PlayerId, from: PlayerId, cardIndex: Int): (Game, Event) = game match {

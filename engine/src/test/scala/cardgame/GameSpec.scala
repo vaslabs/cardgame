@@ -3,9 +3,11 @@ package cardgame
 import java.net.URI
 import java.util.UUID
 
+import cardgame.engine.GameState
 import cats.effect.IO
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import cardgame.model._
 
 import scala.util.Random
 
@@ -111,7 +113,7 @@ class GameSpec extends AnyWordSpec with Matchers {
         GotCard( player3.id, deckCards.head.id)
       )
 
-      GameState(commands, game, randomizer).start.toList mustBe events
+      engine.GameState(commands, game, randomizer).start.toList mustBe events
     }
 
     "draw from the bottom" in {
@@ -137,7 +139,7 @@ class GameSpec extends AnyWordSpec with Matchers {
         NextPlayer(player3.id)
       )
 
-      GameState(commands, game, randomizer).start.toList mustBe events
+      engine.GameState(commands, game, randomizer).start.toList mustBe events
     }
 
     "borrow cards from the deck and put them back in any order" in {
@@ -157,7 +159,7 @@ class GameSpec extends AnyWordSpec with Matchers {
         ReturnedCard(cardsToBorrow(1).id)
       )
 
-      GameState(commands, game, randomizer).start.toList mustBe expectedEvents
+      engine.GameState(commands, game, randomizer).start.toList mustBe expectedEvents
     }
 
     "steal cards from another player" in {
@@ -171,7 +173,7 @@ class GameSpec extends AnyWordSpec with Matchers {
         PlayedCard(VisibleCard(stolenCard.id, stolenCard.image), player1.id)
       )
 
-      GameState(commands, game, randomizer).start.toList mustBe expectedEvents
+      engine.GameState(commands, game, randomizer).start.toList mustBe expectedEvents
     }
   }
 

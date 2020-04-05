@@ -8,26 +8,32 @@ scalaVersion in ThisBuild := "2.13.1"
 lazy val `card-game` = (project in file("."))
   .settings(noPublishSettings)
   .settings(compilerSettings)
-  .aggregate(endpoints, service, protocol)
+  .aggregate(endpoints, service, engine, processor)
+
+lazy val model = (project in file("model"))
+  .settings(noPublishSettings)
+  .settings(compilerSettings)
 
 lazy val endpoints =
   (project in file("endpoints"))
       .settings(
         libraryDependencies ++= Dependencies.Modules.endpoints
       ).settings(noPublishSettings).settings(compilerSettings)
+  .dependsOn(model)
 
 
-lazy val protocol =
-  (project in file("protocol"))
+lazy val engine =
+  (project in file("engine"))
     .settings(libraryDependencies ++= Dependencies.Modules.protocol)
     .settings(noPublishSettings)
     .settings(compilerSettings)
+    .dependsOn(model)
 
 lazy val processor = (project in file("processor"))
   .settings(libraryDependencies ++= Dependencies.Modules.processor)
   .settings(noPublishSettings)
   .settings(compilerSettings)
-  .dependsOn(protocol)
+  .dependsOn(engine)
 
 lazy val service = (project in file("service"))
   .settings(libraryDependencies ++= Dependencies.Modules.service)
@@ -35,17 +41,12 @@ lazy val service = (project in file("service"))
   .settings(dockerSettings)
   .settings(versioningSettings)
   .settings(compilerSettings)
-  .enablePlugins(KubeDeploymentPlugin, KubeServicePlugin, KubeIngressPlugin)
-  .settings(deploymentSettings)
-  .settings(ingressSettings)
-  .dependsOn(endpoints)
+  .dependsOn(endpoints, processor, engine)
 
-lazy val repo = sys.env.get("CI_REGISTRY")
 lazy val dockerSettings = Seq(
   (packageName in Docker) := "cardgame-generator",
   dockerBaseImage := "openjdk:8u191-jre-alpine3.8",
-  dockerRepository := repo,
-  dockerUsername := Some("eng"),
+  dockerUsername := Some("vaslabs"),
   dockerExposedPorts := List(8080)
 )
 
@@ -56,37 +57,6 @@ lazy val noPublishSettings = Seq(
 lazy val versioningSettings = Seq(
   dynverSeparator in ThisBuild := "-",
   dynverVTagPrefix in ThisBuild := false
-)
-
-import kubeyml.deployment.plugin.Keys._
-import kubeyml.deployment.{Resource, Cpu, Memory}
-import kubeyml.ingress.plugin.Keys._
-import kubeyml.ingress.{Host, HttpRule, ServiceMapping, Path => IngressPath}
-import kubeyml.service.plugin.Keys
-import kubeyml.deployment.api._
-import kubeyml.ingress.api._
-
-lazy val deploymentSettings = Seq(
-  namespace in kube := "scala-demo",
-  application in kube := "scala-demo-service",
-  resourceLimits in kube := Resource(Cpu.fromCores(2), Memory(4096))
-)
-
-lazy val domain = sys.env.getOrElse("SCALA_DEMO_HOST", "localhost")
-
-val ingressSettings = Seq(
-  ingressRules in kube := List(
-    HttpRule(
-      Host(domain),
-      List(
-        IngressPath(ServiceMapping((Keys.service in kube).value.name, 8080), "/")
-      )
-    )
-  ),
-  (ingressAnnotations in kube) := Map(
-    Annotate.nginxIngress(), // this adds kubernetes.io/ingress.class: nginx
-    Annotate.nginxRewriteTarget("/"), //this adds nginx.ingres
-  )
 )
 
 lazy val compilerSettings = Seq(
