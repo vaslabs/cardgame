@@ -3,6 +3,7 @@ package cardgame.model
 import java.net.URI
 import java.util.UUID
 
+case class DeckId(value: UUID)
 case class GameId(value: UUID)
 
 sealed trait Game
