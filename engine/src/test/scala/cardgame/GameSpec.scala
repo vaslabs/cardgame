@@ -43,7 +43,7 @@ class GameSpec extends AnyWordSpec with Matchers {
 
       val progress = initialState(commands :+ EndGame).start
 
-      val expectedEvents = players.map(_.id).map(PlayerJoined) :+ GameStopped
+      val expectedEvents = players.map(_.id).map(PlayerJoined) :+ GameStopped()
 
       progress.toList mustBe expectedEvents
     }

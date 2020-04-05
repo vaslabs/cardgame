@@ -115,7 +115,13 @@ case class PlayedCard(card: VisibleCard, playerId: PlayerId) extends Event
 case class MoveCard(card: Card, from: PlayerId, to: PlayerId) extends Event
 case class NewDirection(direction: Direction) extends Event
 case class PlayerLeft(player: PlayerId) extends Event
-case object InvalidAction extends Event
+case class InvalidAction(playerId: Option[PlayerId]) extends Event
 
-case object GameStopped extends Event
+object InvalidAction {
+  def apply(): InvalidAction = InvalidAction(None)
+  def apply(playerId: PlayerId): InvalidAction =
+    InvalidAction(Some(playerId))
+}
+
+case class GameStopped() extends Event
 case class GameFinished(winner: PlayerId) extends Event
