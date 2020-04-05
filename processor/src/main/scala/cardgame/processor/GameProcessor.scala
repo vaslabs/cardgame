@@ -14,10 +14,10 @@ object GameProcessor {
         case c: Command =>
           val (gameAffected, event) = game.action(c.action, randomizer)
           ctx.system.eventStream ! EventStream.Publish(event)
-          c.replyTo ! event
+          c.replyTo ! Right(event)
           behavior(gameAffected, randomizer)
         case Get(replyTo) =>
-          replyTo ! game
+          replyTo ! Right(game)
           Behaviors.same
       }
   }
@@ -26,14 +26,16 @@ object GameProcessor {
   sealed trait Protocol
 
   sealed trait Command extends Protocol {
-    def replyTo: ActorRef[Event]
+    def replyTo: ActorRef[Either[Unit, Event]]
     def action: Action
   }
 
+  case class RunCommand(replyTo: ActorRef[Either[Unit, Event]], action: Action) extends Command
+
   sealed trait Query extends Protocol {
-    def replyTo: ActorRef[Game]
+    def replyTo: ActorRef[Either[Unit, Game]]
   }
 
-  case class Get(replyTo: ActorRef[Game]) extends Query
+  case class Get(replyTo: ActorRef[Either[Unit, Game]]) extends Query
 
 }

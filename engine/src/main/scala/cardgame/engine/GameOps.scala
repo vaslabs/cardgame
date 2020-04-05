@@ -21,7 +21,7 @@ object GameOps {
     def start(deck: Deck, randomizer: IO[Int]): (Game, Event) = {
       game match {
         case StartingGame(players) =>
-          val random = randomizer.unsafeRunSync()
+          val random = randomizer.unsafeRunSync() % players.size
           val gamePlayers = players.map(j => PlayingPlayer(j.id, List.empty))
           val startingPlayer = random
           val startedGame =

@@ -2,7 +2,7 @@ package cardgame.json
 
 import java.net.URI
 
-import cardgame.model.{CardId, Event, PlayerId}
+import cardgame.model.{CardId, Event, Game, PlayerId}
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.auto._
 import io.circe.generic.semiauto._
@@ -20,4 +20,7 @@ object circe {
 
   implicit val eventEncoder: Encoder[Event] = deriveEncoder
   implicit val eventDecoder: Decoder[Event] = deriveDecoder
+
+  implicit val gameEncoder: Encoder[Game] = deriveEncoder
+  implicit val gameDecoder: Decoder[Game] = deriveDecoder
 }
