@@ -3,7 +3,7 @@ package cardgame
 import java.net.URI
 import java.util.UUID
 
-trait Game
+sealed trait Game
 
 case class StartingGame(playersJoined: List[JoiningPlayer]) extends Game
 
@@ -12,7 +12,7 @@ case class StartedGame(
     deck: Deck,
     nextPlayer: Int,
     direction: Direction,
-    deadPlayers: List[PlayingPlayer],
+    deadPlayers: List[DeadPlayer],
     discardPile: DiscardPile
 ) extends Game
 

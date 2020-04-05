@@ -23,6 +23,12 @@ lazy val protocol =
     .settings(noPublishSettings)
     .settings(compilerSettings)
 
+lazy val processor = (project in file("processor"))
+  .settings(libraryDependencies ++= Dependencies.Modules.processor)
+  .settings(noPublishSettings)
+  .settings(compilerSettings)
+  .dependsOn(protocol)
+
 lazy val service = (project in file("service"))
   .settings(libraryDependencies ++= Dependencies.Modules.service)
   .enablePlugins(DockerPlugin, JavaAppPackaging, AshScriptPlugin)

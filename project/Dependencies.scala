@@ -30,6 +30,7 @@ object Dependencies {
 
     object akka {
       val testkit = "com.typesafe.akka" %% "akka-actor-testkit-typed" % Versions.akka.main % Test
+      val actor = "com.typesafe.akka" %% "akka-actor-typed" % Versions.akka.main
       val streams = "com.typesafe.akka" %% "akka-stream-typed" % Versions.akka.main
     }
 
@@ -65,6 +66,8 @@ object Dependencies {
     val endpoints = Seq(scalatest.core, tapir.core, tapir.circe) ++ circe.all
 
     val protocol = Seq(scalatest.core, cats.core, cats.effect)
+
+    val processor = Seq(scalatest.core, akka.testkit, akka.actor, cats.core, cats.effect)
 
     val service = Seq(tapir.akka, scalatest.core, akka.streams, akka.testkit, cats.effect) ++ tapir.docs
 
