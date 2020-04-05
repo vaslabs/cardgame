@@ -24,7 +24,7 @@ object ActiveGames {
           GameProcessor.behavior(StartingGame(List.empty), intRandomizer),
           gameId.toString
         )
-        ()
+        GameId(gameId)
       },
         ()
       )
@@ -47,7 +47,7 @@ object ActiveGames {
   sealed trait Protocol
 
   case class CreateGame(
-           replyTo: ActorRef[Either[Unit, Unit]],
+           replyTo: ActorRef[Either[Unit, GameId]],
            authToken: String,
   ) extends Protocol
 
@@ -60,19 +60,25 @@ object ActiveGames {
   ) extends Protocol
 
 
-  implicit final class ActiveGamesApi(actorRef: ActorRef[Protocol]) {
-    type CreateGameRes = Either[Unit, Unit]
-    type GetGameRes = Either[Unit, Game]
-    type JoinExistingGameRes = Either[Unit, Event]
-    def createGame(authToken: String)(implicit
-                    timeout: Timeout, scheduler: Scheduler): Future[CreateGameRes] =
-      actorRef ? (CreateGame(_, authToken))
-    def getGame(gameId: GameId)(implicit
-                timeout: Timeout, scheduler: Scheduler): Future[GetGameRes] =
-      actorRef ? (GetGameStatus(gameId, _))
+  object api {
 
-    def joinGame(gameId: GameId, playerId: PlayerId)(implicit
-                                     timeout: Timeout, scheduler: Scheduler): Future[JoinExistingGameRes] =
-      actorRef ? (JoinExistingGame(gameId, playerId, _))
+    implicit final class ActiveGamesOps(actorRef: ActorRef[Protocol]) {
+      type CreateGameRes = Either[Unit, GameId]
+      type GetGameRes = Either[Unit, Game]
+      type JoinExistingGameRes = Either[Unit, Event]
+
+      def createGame(authToken: String)(implicit
+                                        timeout: Timeout, scheduler: Scheduler): Future[CreateGameRes] =
+        actorRef ? (CreateGame(_, authToken))
+
+      def getGame(gameId: GameId)(implicit
+                                  timeout: Timeout, scheduler: Scheduler): Future[GetGameRes] =
+        actorRef ? (GetGameStatus(gameId, _))
+
+      def joinGame(gameId: GameId, playerId: PlayerId)(implicit
+                                                       timeout: Timeout, scheduler: Scheduler): Future[JoinExistingGameRes] =
+        actorRef ? (JoinExistingGame(gameId, playerId, _))
+    }
+
   }
 }

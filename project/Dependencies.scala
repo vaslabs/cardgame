@@ -3,6 +3,8 @@ import sbt._
 object Dependencies {
 
   object Versions {
+    val logbackClassic = "1.2.3"
+
 
     object scalatest {
       val core = "3.1.1"
@@ -44,6 +46,12 @@ object Dependencies {
       "io.circe" %% "circe-generic",
       "io.circe" %% "circe-parser").map(_ % Versions.circe.core)
     }
+    object Logback {
+        val essentials = Seq(
+          "ch.qos.logback" % "logback-classic",
+          "ch.qos.logback" % "logback-core",
+          "ch.qos.logback" % "logback-access").map(_ % Versions.logbackClassic)
+    }
     object scalatest {
       val core =  "org.scalatest" %% "scalatest" % Versions.scalatest.core % "test"
     }
@@ -69,7 +77,8 @@ object Dependencies {
 
     val processor = Seq(scalatest.core, akka.testkit, akka.actor, cats.core, cats.effect)
 
-    val service = Seq(tapir.akka, scalatest.core, akka.streams, akka.testkit, cats.effect) ++ tapir.docs
+    val service = Seq(tapir.akka, scalatest.core, akka.streams, akka.testkit, cats.effect) ++ tapir.docs ++
+      Logback.essentials
 
   }
 
