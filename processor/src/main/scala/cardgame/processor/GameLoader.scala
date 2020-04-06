@@ -58,7 +58,10 @@ object GameLoader {
         val cards = configuration.getOrElse(name, 0)
         (0 to cards).map {
           _ =>
-            HiddenCard(CardId(UUID.randomUUID()), URI.create(s"http://localhost:8080/${name}"))
+            HiddenCard(
+              CardId(UUID.randomUUID()),
+              URI.create(s"http://localhost:8080/${file.getName}")
+            )
         }
     }.toList
   }
