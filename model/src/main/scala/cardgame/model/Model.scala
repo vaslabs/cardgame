@@ -105,7 +105,7 @@ object DiscardPile {
 }
 
 sealed trait Event
-case class PlayerJoined(playerJoined: PlayerId) extends Event
+case class PlayerJoined(id: PlayerId) extends Event
 case class GameStarted(startingPlayer: PlayerId) extends Event
 case class NextPlayer(player: PlayerId) extends Event
 case class GotCard(playerId: PlayerId, cardId: CardId) extends Event
@@ -124,5 +124,7 @@ object InvalidAction {
     InvalidAction(Some(playerId))
 }
 
-case class GameStopped() extends Event
-case class GameFinished(winner: PlayerId) extends Event
+sealed trait GameCompleted extends Event
+
+case class GameStopped() extends GameCompleted
+case class GameFinished(winner: PlayerId) extends GameCompleted

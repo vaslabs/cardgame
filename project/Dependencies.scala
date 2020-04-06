@@ -18,6 +18,8 @@ object Dependencies {
     }
 
     object akka {
+      val cors = "0.4.2"
+
       val main = "2.6.4"
     }
 
@@ -34,6 +36,7 @@ object Dependencies {
       val testkit = "com.typesafe.akka" %% "akka-actor-testkit-typed" % Versions.akka.main % Test
       val actor = "com.typesafe.akka" %% "akka-actor-typed" % Versions.akka.main
       val streams = "com.typesafe.akka" %% "akka-stream-typed" % Versions.akka.main
+      val cors = "ch.megard" %% "akka-http-cors" % Versions.akka.cors
     }
 
     object cats {
@@ -77,7 +80,7 @@ object Dependencies {
 
     val processor = Seq(scalatest.core, akka.testkit, akka.actor, cats.core, cats.effect) ++ circe.all
 
-    val service = Seq(tapir.akka, scalatest.core, akka.streams, akka.testkit, cats.effect) ++ tapir.docs ++
+    val service = Seq(tapir.akka, scalatest.core, akka.cors, akka.streams, akka.testkit, cats.effect) ++ tapir.docs ++
       Logback.essentials
 
   }
