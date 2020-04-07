@@ -45,6 +45,13 @@ object GameOps {
         game -> InvalidAction(playerId)
     }
 
+    def shuffle(playerId: PlayerId): (Game, Event) = game match {
+      case sg: StartedGame =>
+        sg.shuffle(playerId)
+      case _ =>
+        game -> InvalidAction()
+    }
+
     def bottomDraw(playerId: PlayerId): (Game, Event) = game match {
       case sg: StartedGame =>
         sg.bottomDraw(playerId)
@@ -127,6 +134,8 @@ object GameOps {
           returnCard(playerId, cardId)
         case StealCard(player, from, cardIndex) =>
           steal(player, from, cardIndex)
+        case s: Shuffle =>
+          shuffle(s.player)
         case p: PlayingGameAction =>
           game -> InvalidAction(p.player)
         case _ =>

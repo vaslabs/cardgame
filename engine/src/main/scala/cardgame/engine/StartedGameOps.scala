@@ -2,6 +2,8 @@ package cardgame.engine
 
 import cardgame.model._
 
+import scala.util.Random
+
 object StartedGameOps {
 
   implicit final class _StartedGameOps(val game: StartedGame) {
@@ -16,6 +18,15 @@ object StartedGameOps {
           draw.headOption.map(c => GotCard(playerId, c))
             .getOrElse(InvalidAction(playerId))
       },
+        game
+      )
+    }
+
+    def shuffle(playerId: PlayerId): (Game, Event) = {
+      ifHasTurn(game.players, game.nextPlayer, playerId, {
+          val newDeck = Deck(Random.shuffle(game.deck.cards))
+          game.copy(deck = newDeck) -> DeckShuffled(newDeck)
+        },
         game
       )
     }
