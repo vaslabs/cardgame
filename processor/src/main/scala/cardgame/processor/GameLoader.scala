@@ -56,7 +56,7 @@ object GameLoader {
       file =>
         val name = file.getName.substring(0, file.getName.size - 4)
         val cards = configuration.getOrElse(name, 0)
-        (0 to cards).map {
+        (1 to cards).map {
           _ =>
             HiddenCard(
               CardId(UUID.randomUUID()),
