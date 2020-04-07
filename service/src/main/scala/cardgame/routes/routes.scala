@@ -26,7 +26,10 @@ class Routes(activeGames: ActorRef[ActiveGames.Protocol])(implicit scheduler: Sc
   val startingGame =  JoiningGame.joinPlayer.toRoute {
       case (gameId, playerId) => activeGames.joinGame(gameId, playerId)
     } ~ View.gameStatus.toRoute {
-    case (gameId, playerId) => activeGames.getGame(gameId, playerId)
+      case (gameId, playerId) => activeGames.getGame(gameId, playerId)
+    } ~ Actions.player.toRoute {
+        case (gameId, action) =>
+          activeGames.action(gameId, action)
     } ~ path("events" / PlayerIdMatcher) {
       (playerId) => get {
           complete(toSse(eventSource(playerId)))
@@ -39,7 +42,7 @@ class Routes(activeGames: ActorRef[ActiveGames.Protocol])(implicit scheduler: Sc
               MediaTypes.`image/jpeg`
             )
       }
-  }
+    }
 
 
   val adminRoutes = admin.createGame.toRoute {

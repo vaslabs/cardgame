@@ -60,7 +60,7 @@ object GameLoader {
           _ =>
             HiddenCard(
               CardId(UUID.randomUUID()),
-              URI.create(s"http://localhost:8080/img/${deckId.value.toString}${file.getName}")
+              URI.create(s"http://localhost:8080/img/${deckId.value.toString}/${file.getName}")
             )
         }
     }.toList

@@ -2,8 +2,8 @@ package cardgame.json
 
 import java.net.URI
 
-import cardgame.model.{CardId, DeckId, Event, Game, HiddenCard, PlayerId}
-import io.circe.{Decoder, Encoder, Json}
+import cardgame.model.{CardId, DeckId, Event, Game, HiddenCard, PlayerId, PlayingGameAction}
+import io.circe.{Codec, Decoder, Encoder, Json}
 import io.circe.generic.auto._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
@@ -33,4 +33,7 @@ object circe {
       hc =>
         Json.obj("id" -> hc.id.asJson)
     }
+
+  implicit val playingGameActionCodec: Codec[PlayingGameAction] =
+    deriveCodec
 }

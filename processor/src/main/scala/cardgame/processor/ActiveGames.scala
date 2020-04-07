@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior, Scheduler}
-import cardgame.model.{DeckId, Event, Game, GameId, JoinGame, JoiningPlayer, PlayerId, StartingGame}
+import cardgame.model.{DeckId, Event, Game, GameId, JoinGame, JoiningPlayer, PlayerId, PlayingGameAction, StartingGame}
 import cats.effect.IO
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.util.Timeout
@@ -55,6 +55,12 @@ object ActiveGames {
         ()
       )
       Behaviors.same
+
+    case (ctx, DoGameAction(gameId, action, replyTo)) =>
+      gameProcessor(ctx, gameId).map(
+        _ ! GameProcessor.RunCommand(replyTo, action)
+      ).getOrElse(replyTo ! Left(()))
+      Behaviors.same
   }
 
   private def gameProcessor(actorContext: ActorContext[_], gameId: GameId): Option[ActorRef[GameProcessor.Protocol]] =
@@ -90,13 +96,19 @@ object ActiveGames {
      replyTo: ActorRef[Either[Unit, Unit]]
   ) extends AdminControl
 
+  case class DoGameAction(
+                          id: GameId,
+                          action: PlayingGameAction,
+                          replyTo: ActorRef[Either[Unit, Event]]
+  ) extends Protocol
+
 
   object api {
 
     implicit final class ActiveGamesOps(actorRef: ActorRef[Protocol]) {
       type CreateGameRes = Either[Unit, GameId]
       type GetGameRes = Either[Unit, Game]
-      type JoinExistingGameRes = Either[Unit, Event]
+      type ActionRes = Either[Unit, Event]
 
       def createGame(authToken: String)(implicit
                                         timeout: Timeout, scheduler: Scheduler): Future[CreateGameRes] =
@@ -107,12 +119,17 @@ object ActiveGames {
         actorRef ? (GetGameStatus(gameId, playerId, _))
 
       def joinGame(gameId: GameId, playerId: PlayerId)(implicit
-                                                       timeout: Timeout, scheduler: Scheduler): Future[JoinExistingGameRes] =
+                                                       timeout: Timeout, scheduler: Scheduler): Future[ActionRes] =
         actorRef ? (JoinExistingGame(gameId, playerId, _))
 
       def startGame(token: String, gameId: GameId, deckId: DeckId)(implicit
                     timeout: Timeout, scheduler: Scheduler): Future[Either[Unit, Unit]] =
         actorRef ? (LoadGame(token, gameId, deckId, _))
+
+      def action(gameId: GameId, action: PlayingGameAction)
+                (implicit timeout: Timeout, scheduler: Scheduler): Future[ActionRes] = {
+        actorRef ? (DoGameAction(gameId, action, _))
+      }
     }
 
   }
