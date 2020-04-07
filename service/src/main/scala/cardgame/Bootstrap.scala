@@ -34,7 +34,7 @@ object Guardian {
     implicit val materializer = Materializer(ctx)
     implicit val system = ctx.system.toClassic
 
-    val startingGameRoute = new Routes(activeGames)(ctx.system.scheduler)
+    val startingGameRoute = new Routes(activeGames)(ctx.system.scheduler, ctx)
     val bindingFuture = Http().bindAndHandle(
       startingGameRoute.main, "0.0.0.0", 8080)
 

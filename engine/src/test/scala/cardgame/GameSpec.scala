@@ -66,13 +66,13 @@ class GameSpec extends AnyWordSpec with Matchers {
 
       val expectedEvents = players.map(_.id).map(PlayerJoined) ++ List(
         GameStarted(PlayerId("123")),
-        GotCard(PlayerId("123"), deck.cards(0).id),
+        GotCard(PlayerId("123"), deck.cards(0)),
         NextPlayer(PlayerId("124")),
-        GotCard(PlayerId("124"), deck.cards(1).id),
+        GotCard(PlayerId("124"), deck.cards(1)),
         NextPlayer(PlayerId("123")),
         PlayedCard(VisibleCard(deck.cards(0).id, deck.cards(0).image), PlayerId("123")),
         NextPlayer(PlayerId("124")),
-        GotCard(PlayerId("124"), deck.cards(2).id),
+        GotCard(PlayerId("124"), deck.cards(2)),
         PlayerLeft(PlayerId("124")),
         GameFinished(PlayerId("123"))
       )
@@ -110,7 +110,7 @@ class GameSpec extends AnyWordSpec with Matchers {
         PlayedCard(VisibleCard(cardToPlay.id, cardToPlay.image), player1.id),
         NewDirection(AntiClockwise),
         NextPlayer(player3.id),
-        GotCard( player3.id, deckCards.head.id)
+        GotCard( player3.id, deckCards.head)
       )
 
       engine.GameState(commands, game, randomizer).start.toList mustBe events
@@ -132,10 +132,10 @@ class GameSpec extends AnyWordSpec with Matchers {
 
       val events = List(
         PlayedCard(VisibleCard(cardToPlayP1.id, cardToPlayP1.image), player1.id),
-        GotCard(player1.id, drawCardP1.id),
+        GotCard(player1.id, drawCardP1),
         NextPlayer(player2.id),
         PlayedCard(VisibleCard(cardToPlayP2.id, cardToPlayP2.image), player2.id),
-        GotCard(player2.id, drawCardP2.id),
+        GotCard(player2.id, drawCardP2),
         NextPlayer(player3.id)
       )
 

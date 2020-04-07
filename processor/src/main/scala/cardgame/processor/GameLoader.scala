@@ -47,11 +47,11 @@ object GameLoader {
         }
     }.unsafeRunSync()
 
-    createDeck(allImageFiles, deckConfiguration)
+    createDeck(allImageFiles, deckConfiguration, deckId)
 
   }
 
-  private def createDeck(files: Array[File], configuration: Map[String, Int]): Deck = Deck {
+  private def createDeck(files: Array[File], configuration: Map[String, Int],deckId: DeckId): Deck = Deck {
     files.flatMap {
       file =>
         val name = file.getName.substring(0, file.getName.size - 4)
@@ -60,7 +60,7 @@ object GameLoader {
           _ =>
             HiddenCard(
               CardId(UUID.randomUUID()),
-              URI.create(s"http://localhost:8080/${file.getName}")
+              URI.create(s"http://localhost:8080/img/${deckId.value.toString}${file.getName}")
             )
         }
     }.toList

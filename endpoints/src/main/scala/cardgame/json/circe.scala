@@ -2,10 +2,11 @@ package cardgame.json
 
 import java.net.URI
 
-import cardgame.model.{CardId, DeckId, Event, Game, PlayerId}
-import io.circe.{Decoder, Encoder}
+import cardgame.model.{CardId, DeckId, Event, Game, HiddenCard, PlayerId}
+import io.circe.{Decoder, Encoder, Json}
 import io.circe.generic.auto._
 import io.circe.generic.semiauto._
+import io.circe.syntax._
 
 import scala.util.Try
 object circe {
@@ -26,4 +27,10 @@ object circe {
 
   implicit val gameEncoder: Encoder[Game] = deriveEncoder
   implicit val gameDecoder: Decoder[Game] = deriveDecoder
+
+  implicit val hiddenCardEncoder: Encoder[HiddenCard] =
+    Encoder.instance {
+      hc =>
+        Json.obj("id" -> hc.id.asJson)
+    }
 }

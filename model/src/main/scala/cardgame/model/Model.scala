@@ -108,7 +108,7 @@ sealed trait Event
 case class PlayerJoined(id: PlayerId) extends Event
 case class GameStarted(startingPlayer: PlayerId) extends Event
 case class NextPlayer(player: PlayerId) extends Event
-case class GotCard(playerId: PlayerId, cardId: CardId) extends Event
+case class GotCard(playerId: PlayerId, card: Card) extends Event
 case class BorrowedCard(cardId: CardId, playerId: PlayerId) extends Event
 case class ReturnedCard(cardId: CardId) extends Event
 case class DeckShuffled(deck: Deck) extends Event

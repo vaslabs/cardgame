@@ -13,7 +13,7 @@ object StartedGameOps {
         val newDeck = Deck(game.deck.cards.drop(1), List.empty)
         val newHand = player.copy(hand = player.hand ++ draw)
         game.copy(players = game.players.updated(game.nextPlayer, newHand), deck = newDeck) ->
-          draw.headOption.map(c => GotCard(playerId, c.id))
+          draw.headOption.map(c => GotCard(playerId, c))
             .getOrElse(InvalidAction(playerId))
       },
         game
@@ -32,7 +32,7 @@ object StartedGameOps {
               players = game.players.updated(game.nextPlayer, newHand),
               deck = newDeck
             ) ->
-              draw.headOption.map(c => GotCard(playerId, c.id)).getOrElse(InvalidAction(playerId))
+              draw.headOption.map(c => GotCard(playerId, c)).getOrElse(InvalidAction(playerId))
           },
           game
         )

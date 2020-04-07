@@ -14,7 +14,7 @@ object JoiningGame {
   val joinPlayer =
     endpoint.in(
       "game" / path[GameId] / "join"
-    ).put
+    ).post
     .in(query[PlayerId]("username"))
     .out(jsonBody[Event])
     .errorOut(statusCode(StatusCode.NotFound))

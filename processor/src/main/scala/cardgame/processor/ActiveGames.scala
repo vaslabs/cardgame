@@ -29,7 +29,7 @@ object ActiveGames {
         ()
       )
       Behaviors.same
-    case (ctx, GetGameStatus(gameId, replyTo)) =>
+    case (ctx, GetGameStatus(gameId, _, replyTo)) =>
       gameProcessor(ctx, gameId)
         .map(_ ! GameProcessor.Get(replyTo))
         .getOrElse(replyTo ! Left(()))
@@ -71,7 +71,11 @@ object ActiveGames {
            authToken: String,
   ) extends AdminControl
 
-  case class GetGameStatus(gameId: GameId, replyTo: ActorRef[Either[Unit, Game]]) extends Protocol
+  case class GetGameStatus(
+                           gameId: GameId,
+                           playerId: PlayerId,
+                           replyTo: ActorRef[Either[Unit, Game]]
+  ) extends Protocol
 
   case class JoinExistingGame(
     gameId: GameId,
@@ -98,9 +102,9 @@ object ActiveGames {
                                         timeout: Timeout, scheduler: Scheduler): Future[CreateGameRes] =
         actorRef ? (CreateGame(_, authToken))
 
-      def getGame(gameId: GameId)(implicit
+      def getGame(gameId: GameId, playerId: PlayerId)(implicit
                                   timeout: Timeout, scheduler: Scheduler): Future[GetGameRes] =
-        actorRef ? (GetGameStatus(gameId, _))
+        actorRef ? (GetGameStatus(gameId, playerId, _))
 
       def joinGame(gameId: GameId, playerId: PlayerId)(implicit
                                                        timeout: Timeout, scheduler: Scheduler): Future[JoinExistingGameRes] =
