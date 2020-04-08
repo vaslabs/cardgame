@@ -29,9 +29,9 @@ object ActiveGames {
         ()
       )
       Behaviors.same
-    case (ctx, GetGameStatus(gameId, _, replyTo)) =>
+    case (ctx, GetGameStatus(gameId, playerId, replyTo)) =>
       gameProcessor(ctx, gameId)
-        .map(_ ! GameProcessor.Get(replyTo))
+        .map(_ ! GameProcessor.Get(playerId, replyTo))
         .getOrElse(replyTo ! Left(()))
       Behaviors.same
     case (ctx, JoinExistingGame(gameId, playerId, replyTo)) =>

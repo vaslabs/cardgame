@@ -124,7 +124,7 @@ class GameSpec extends AnyWordSpec with Matchers {
       val commands = LazyList(
         PlayCard(cardToPlayP1.id, player1.id),
         BottomDraw(player1.id),
-        EndTurn(player1.id),
+        ChooseNextPlayer(player1.id, player2.id),
         PlayCard(cardToPlayP2.id, player2.id),
         BottomDraw(player2.id),
         EndTurn(player2.id)

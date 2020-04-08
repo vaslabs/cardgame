@@ -48,6 +48,18 @@ object StartedGameOps {
           game
         )
 
+    def chooseNextPlayer(playerId: PlayerId, next: PlayerId): (Game, Event) =
+      ifHasTurn(game.players, game.nextPlayer, playerId,
+        {
+          game.players.indexWhere(_.id == next) match {
+            case n if n >= 0 =>
+              game.copy(nextPlayer = n) -> NextPlayer(next)
+            case _ =>
+              game -> InvalidAction(playerId)
+          }
+        },
+        game
+      )
 
     def endTurn(playerId: PlayerId): (Game, Event) =
         ifHasTurn(
@@ -78,19 +90,23 @@ object StartedGameOps {
     }
 
     def play(playerId: PlayerId, cardId: CardId): (Game, Event) = game match {
-      case sg@StartedGame(players, _, currentPlayer, _, _, _) =>
+      case sg@StartedGame(players, _, currentPlayer, _, _, discardPile) =>
         ifHasTurn(
           players, currentPlayer, playerId,
           {
             val player = players.find(_.id == playerId).get
-            val event = player.hand.find(_.id == cardId).map {
-              card => PlayedCard(VisibleCard(cardId, card.image), playerId)
-            }.getOrElse(InvalidAction(playerId))
+            val visibleCardOpt: Option[VisibleCard] = player.hand.find(_.id == cardId).map {
+              card => VisibleCard(cardId, card.image)
+            }
+            val event = visibleCardOpt.map(PlayedCard(_, playerId))
+              .getOrElse(InvalidAction(playerId))
+
             sg.copy(
               players.updated(
                 currentPlayer,
                 player.copy(hand = player.hand.filterNot(_.id == cardId))
-              )
+              ),
+              discardPile = discardPile.copy(cards = discardPile.cards ++ visibleCardOpt.toList)
             ) -> event
           },
           sg
@@ -142,16 +158,28 @@ object StartedGameOps {
       case sg@StartedGame(players, _, currentPlayer, _, _, _) =>
         ifHasTurn(players, currentPlayer, player,
           {
-            val playerTo = players.find(_.id == player).get
-            val position = players.indexOf(playerTo)
-            val playerFrom = players.find(_.id == from)
-            val cardToSteal = playerFrom.flatMap {
-              p =>
-                p.hand.lift(cardIndex)
+            val playerTo = players.indexWhere(_.id == player)
+            val playerFrom = players.indexWhere(_.id == from)
+            val moveCardAction = (playerTo, playerFrom) match {
+              case (to, from) if to >= 0 && from >= 0 =>
+                players(from).hand.lift(cardIndex).map(_ => cardIndex -> players(playerTo) -> players(playerFrom))
+              case _ =>
+                None
             }
-            val event = cardToSteal.map(MoveCard(_, from, player)).getOrElse(InvalidAction(player))
-            val playerWithCard = cardToSteal.map(c => playerTo.copy(hand = playerTo.hand :+ c)).getOrElse(playerTo)
-            sg.copy(players = players.updated(position, playerWithCard)) -> event
+
+            moveCardAction match {
+              case Some(((card, destination), source)) =>
+                val newDest = destination.copy(hand = destination.hand :+ source.hand(card))
+                val newSource = source.copy(hand = source.hand.patch(card, Nil, 1))
+                sg.copy(
+                  players = players
+                    .updated(playerTo, newDest)
+                    .updated(playerFrom, newSource)
+                ) -> MoveCard(source.hand(card), from, player)
+              case None =>
+                sg -> InvalidAction(player)
+            }
+
           },
           sg
         )

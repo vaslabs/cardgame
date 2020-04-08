@@ -3,7 +3,7 @@ package cardgame.processor
 import akka.actor.typed.eventstream.EventStream
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
-import cardgame.model.{Event, GotCard, PlayerId, VisibleCard}
+import cardgame.model.{Event, GotCard, HiddenCard, MoveCard, PlayerId, VisibleCard}
 
 object PlayerEventsReader {
 
@@ -23,8 +23,12 @@ object PlayerEventsReader {
     event match {
       case gc @ GotCard(player, card) if player == playerId =>
         gc.copy(card = VisibleCard(card.id, card.image))
-      case _ =>
-        event
+      case mv @ MoveCard(card: HiddenCard, _, to) if (to == playerId) =>
+        mv.copy(card = VisibleCard(card.id, card.image))
+      case mv @ MoveCard(card: VisibleCard, _, _) =>
+        mv.copy(card = HiddenCard(card.id, card.image))
+      case other =>
+        other
     }
   }
 

@@ -54,10 +54,10 @@ case class PlayCard(card: CardId, player: PlayerId) extends PlayingGameAction
 case class BorrowCard(player: PlayerId) extends PlayingGameAction
 case class ReturnCard(player: PlayerId, cardId: CardId) extends PlayingGameAction
 case class StealCard(player: PlayerId, from: PlayerId, cardIndex: Int) extends PlayingGameAction
-case class AskForCard(card: Card, player: PlayerId, from: Player) extends PlayingGameAction
 case class PutCardBack(card: Card, player: PlayerId) extends PlayingGameAction
 case class GiveCard(card: Card, player: PlayerId, to: PlayerId) extends PlayingGameAction
 case class SwitchDirection(player: PlayerId) extends PlayingGameAction
+case class ChooseNextPlayer(player: PlayerId, next: PlayerId) extends PlayingGameAction
 case class Leave(player: PlayerId) extends PlayingGameAction
 case class EndTurn(player: PlayerId) extends PlayingGameAction
 

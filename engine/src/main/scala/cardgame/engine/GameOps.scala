@@ -52,6 +52,13 @@ object GameOps {
         game -> InvalidAction()
     }
 
+    def chooseNextPlayer(player: PlayerId, next: PlayerId): (Game, Event) = game match {
+      case sg: StartedGame =>
+        sg.chooseNextPlayer(player, next)
+      case _ =>
+        game -> InvalidAction(player)
+    }
+
     def bottomDraw(playerId: PlayerId): (Game, Event) = game match {
       case sg: StartedGame =>
         sg.bottomDraw(playerId)
@@ -132,10 +139,12 @@ object GameOps {
           borrow(player)
         case ReturnCard(playerId, cardId) =>
           returnCard(playerId, cardId)
-        case StealCard(player, from, cardIndex) =>
-          steal(player, from, cardIndex)
         case s: Shuffle =>
           shuffle(s.player)
+        case s: StealCard =>
+          steal(s.player, s.from, s.cardIndex)
+        case ChooseNextPlayer(playerId, next) =>
+          chooseNextPlayer(playerId, next)
         case p: PlayingGameAction =>
           game -> InvalidAction(p.player)
         case _ =>

@@ -20,11 +20,26 @@ object GameProcessor {
           val (gameAffected, event) = game.action(c.action, randomizer)
           ctx.system.eventStream ! EventStream.Publish(event)
           behavior(gameAffected, randomizer)
-        case Get(replyTo) =>
-          replyTo ! Right(game)
+        case Get(playerId, replyTo) =>
+          replyTo ! Right(personalise(playerId, game))
           Behaviors.same
       }
   }
+
+  private def personalise(playerId: PlayerId, game: Game): Game = {
+    game match {
+      case g @ StartedGame(players, _, _, _, _, _) =>
+        players.indexWhere(_.id == playerId) match {
+          case n if n >= 0 =>
+            g.copy(players.updated(n, turnVisible(players(n))))
+          case _ => game
+        }
+      case other => other
+    }
+  }
+
+  private def turnVisible(player: PlayingPlayer): PlayingPlayer =
+        player.copy(hand = player.hand.map(c => VisibleCard(c.id, c.image)))
 
 
   sealed trait Protocol
@@ -44,6 +59,6 @@ object GameProcessor {
     def replyTo: ActorRef[Either[Unit, Game]]
   }
 
-  case class Get(replyTo: ActorRef[Either[Unit, Game]]) extends Query
+  case class Get(playerId: PlayerId, replyTo: ActorRef[Either[Unit, Game]]) extends Query
 
 }
