@@ -90,7 +90,7 @@ case class Deck(cards: List[Card], borrowed: List[Card]) {
   def returnCard(cardId: CardId): Option[Deck] = {
     val toReturn = borrowed.find(_.id == cardId)
     toReturn.map(
-      c => Deck(cards :+ c, borrowed.filterNot(_.id == cardId))
+      c => Deck(c +: cards, borrowed.filterNot(_.id == cardId))
     )
   }
 }
@@ -109,7 +109,7 @@ case class PlayerJoined(id: PlayerId) extends Event
 case class GameStarted(startingPlayer: PlayerId) extends Event
 case class NextPlayer(player: PlayerId) extends Event
 case class GotCard(playerId: PlayerId, card: Card) extends Event
-case class BorrowedCard(cardId: CardId, playerId: PlayerId) extends Event
+case class BorrowedCard(card: Card, playerId: PlayerId) extends Event
 case class ReturnedCard(cardId: CardId) extends Event
 case class DeckShuffled(deck: Deck) extends Event
 case class PlayedCard(card: VisibleCard, playerId: PlayerId) extends Event

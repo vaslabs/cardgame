@@ -131,7 +131,7 @@ object StartedGameOps {
           if (index < deck.cards.size && index >= 0) {
             val borrowDeck = deck.borrow(index)
             borrowDeck.borrowed.lastOption.map {
-              c => sg.copy(deck = borrowDeck) -> BorrowedCard(c.id, player)
+              c => sg.copy(deck = borrowDeck) -> BorrowedCard(c, player)
             }.getOrElse(sg -> InvalidAction(player))
           } else {
             game -> InvalidAction(player)

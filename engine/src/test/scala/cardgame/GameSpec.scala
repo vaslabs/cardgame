@@ -153,8 +153,8 @@ class GameSpec extends AnyWordSpec with Matchers {
       )
 
       val expectedEvents = List(
-        BorrowedCard(cardsToBorrow.head.id, player1.id),
-        BorrowedCard(cardsToBorrow(1).id, player1.id),
+        BorrowedCard(cardsToBorrow.head, player1.id),
+        BorrowedCard(cardsToBorrow(1), player1.id),
         ReturnedCard(cardsToBorrow(0).id),
         ReturnedCard(cardsToBorrow(1).id)
       )
