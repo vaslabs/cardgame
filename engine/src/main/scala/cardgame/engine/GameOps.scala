@@ -94,9 +94,9 @@ object GameOps {
         other -> InvalidAction(playerId)
     }
 
-    def borrow(player: PlayerId): (Game, Event) = game match {
+    def borrow(player: PlayerId, index: Int): (Game, Event) = game match {
       case sg: StartedGame =>
-        sg.borrow(player)
+        sg.borrow(player, index)
       case other =>
         other -> InvalidAction(player)
     }
@@ -135,8 +135,8 @@ object GameOps {
           reverse(playerId)
         case BottomDraw(playerId) =>
           bottomDraw(playerId)
-        case BorrowCard(player) =>
-          borrow(player)
+        case BorrowCard(player, idx) =>
+          borrow(player, idx)
         case ReturnCard(playerId, cardId) =>
           returnCard(playerId, cardId)
         case s: Shuffle =>

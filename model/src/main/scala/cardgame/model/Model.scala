@@ -51,7 +51,7 @@ case class Shuffle(player: PlayerId) extends PlayingGameAction
 case class DrawCard(player: PlayerId) extends PlayingGameAction
 case class BottomDraw(player: PlayerId) extends PlayingGameAction
 case class PlayCard(card: CardId, player: PlayerId) extends PlayingGameAction
-case class BorrowCard(player: PlayerId) extends PlayingGameAction
+case class BorrowCard(player: PlayerId, index: Int) extends PlayingGameAction
 case class ReturnCard(player: PlayerId, cardId: CardId) extends PlayingGameAction
 case class StealCard(player: PlayerId, from: PlayerId, cardIndex: Int) extends PlayingGameAction
 case class PutCardBack(card: Card, player: PlayerId) extends PlayingGameAction
@@ -84,8 +84,8 @@ case class CardId(value: UUID)
 
 case class Deck(cards: List[Card], borrowed: List[Card]) {
 
-  def borrow: Deck =
-    Deck(cards.drop(1), borrowed :+ cards.head)
+  def borrow(index: Int): Deck =
+    Deck(cards.patch(index, Nil, 1), borrowed :+ cards(index))
 
   def returnCard(cardId: CardId): Option[Deck] = {
     val toReturn = borrowed.find(_.id == cardId)

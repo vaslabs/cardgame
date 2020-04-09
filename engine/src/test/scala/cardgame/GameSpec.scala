@@ -146,8 +146,8 @@ class GameSpec extends AnyWordSpec with Matchers {
       val cardsToBorrow = List(deckCards.head, deckCards(1))
 
       val commands = LazyList(
-        BorrowCard(player1.id),
-        BorrowCard(player1.id),
+        BorrowCard(player1.id, 0),
+        BorrowCard(player1.id, 0),
         ReturnCard(player1.id, cardsToBorrow(0).id),
         ReturnCard(player1.id, cardsToBorrow(1).id)
       )

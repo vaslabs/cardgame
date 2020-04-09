@@ -125,13 +125,17 @@ object StartedGameOps {
         other -> InvalidAction(playerId)
     }
 
-    def borrow(player: PlayerId): (Game, Event) = game match {
+    def borrow(player: PlayerId, index: Int): (Game, Event) = game match {
       case sg@StartedGame(players, deck, currentPlayer, _, _, _) =>
         ifHasTurn(players, currentPlayer, player, {
-          val borrowDeck = deck.borrow
-          borrowDeck.borrowed.lastOption.map {
-            c => sg.copy(deck = borrowDeck) -> BorrowedCard(c.id, player)
-          }.getOrElse(sg -> InvalidAction(player))
+          if (index < deck.cards.size && index >= 0) {
+            val borrowDeck = deck.borrow(index)
+            borrowDeck.borrowed.lastOption.map {
+              c => sg.copy(deck = borrowDeck) -> BorrowedCard(c.id, player)
+            }.getOrElse(sg -> InvalidAction(player))
+          } else {
+            game -> InvalidAction(player)
+          }
         },
           sg
         )
