@@ -86,7 +86,7 @@ object StartingGameOps {
 
       val playersWithHand = playersWithGuaranteedCard.zipWithIndex.map {
         case (player, index) =>
-          val cards = shuffledCards.slice(index * 4, index * 4 + index + 4)
+          val cards = shuffledCards.slice(index * 4, index * 4 + 4)
           takenCards ++= cards.map(_.id).toSet
           player.copy(hand = Random.shuffle(player.hand ++ cards))
       }
