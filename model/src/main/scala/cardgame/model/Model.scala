@@ -54,7 +54,7 @@ case class PlayCard(card: CardId, player: PlayerId) extends PlayingGameAction
 case class BorrowCard(player: PlayerId, index: Int) extends PlayingGameAction
 case class ReturnCard(player: PlayerId, cardId: CardId) extends PlayingGameAction
 case class StealCard(player: PlayerId, from: PlayerId, cardIndex: Int) extends PlayingGameAction
-case class PutCardBack(card: Card, player: PlayerId) extends PlayingGameAction
+case class PutCardBack(card: Card, player: PlayerId, index: Int) extends PlayingGameAction
 case class GiveCard(card: Card, player: PlayerId, to: PlayerId) extends PlayingGameAction
 case class SwitchDirection(player: PlayerId) extends PlayingGameAction
 case class ChooseNextPlayer(player: PlayerId, next: PlayerId) extends PlayingGameAction
@@ -82,7 +82,15 @@ case class VisibleCard(id: CardId, image: URI) extends Card
 
 case class CardId(value: UUID)
 
-case class Deck(cards: List[Card], borrowed: List[Card]) {
+case class Deck(cards: List[Card], borrowed: List[Card], startingRules: Map[String, List[String]]) {
+  def putBack(card: Card, index: Int): Deck =
+    if (index >= cards.size)
+      Deck(cards :+ card)
+    else if (index >= 0) {
+      Deck(cards.patch(index, List(card), 0))
+    } else
+      this
+
 
   def borrow(index: Int): Deck =
     Deck(cards.patch(index, Nil, 1), borrowed :+ cards(index))
@@ -96,7 +104,11 @@ case class Deck(cards: List[Card], borrowed: List[Card]) {
 }
 
 object Deck {
-  def apply(cards: List[Card]): Deck = Deck(cards, List.empty)
+  def apply(cards: List[Card]): Deck = Deck(cards, List.empty, Map.empty)
+
+  def apply(cards: List[Card], borrowed: List[Card]): Deck = Deck(cards, borrowed, Map.empty)
+
+
 }
 
 case class DiscardPile(cards: List[Card])
@@ -110,7 +122,8 @@ case class GameStarted(startingPlayer: PlayerId) extends Event
 case class NextPlayer(player: PlayerId) extends Event
 case class GotCard(playerId: PlayerId, card: Card) extends Event
 case class BorrowedCard(card: Card, playerId: PlayerId) extends Event
-case class ReturnedCard(cardId: CardId) extends Event
+case class ReturnedCard(card: CardId, index: Int) extends Event
+case class BackToDeck(card: Card, index: Int) extends Event
 case class DeckShuffled(deck: Deck) extends Event
 case class PlayedCard(card: VisibleCard, playerId: PlayerId) extends Event
 case class MoveCard(card: Card, from: PlayerId, to: PlayerId) extends Event

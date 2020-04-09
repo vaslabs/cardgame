@@ -155,8 +155,8 @@ class GameSpec extends AnyWordSpec with Matchers {
       val expectedEvents = List(
         BorrowedCard(cardsToBorrow.head, player1.id),
         BorrowedCard(cardsToBorrow(1), player1.id),
-        ReturnedCard(cardsToBorrow(0).id),
-        ReturnedCard(cardsToBorrow(1).id)
+        ReturnedCard(cardsToBorrow(0).id, 0),
+        ReturnedCard(cardsToBorrow(1).id, 0)
       )
 
       engine.GameState(commands, game, randomizer).start.toList mustBe expectedEvents
@@ -174,6 +174,24 @@ class GameSpec extends AnyWordSpec with Matchers {
       )
 
       engine.GameState(commands, game, randomizer).start.toList mustBe expectedEvents
+    }
+    "play cards back to deck" in {
+      val commands = LazyList(
+        PutCardBack(player1.hand.head, player1.id, deckCards.size),
+        EndTurn(player1.id),
+        BottomDraw(player2.id),
+        BottomDraw(player2.id)
+      )
+
+      val expectedEvents = LazyList(
+        BackToDeck(player1.hand.head, deckCards.size),
+        NextPlayer(player2.id),
+        GotCard(player2.id, player1.hand.head),
+        GotCard(player2.id, deckCards.last)
+      )
+
+      engine.GameState(commands, game, randomizer).start.toList mustBe
+        expectedEvents
     }
   }
 

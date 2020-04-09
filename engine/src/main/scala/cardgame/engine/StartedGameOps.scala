@@ -24,8 +24,11 @@ object StartedGameOps {
 
     def shuffle(playerId: PlayerId): (Game, Event) = {
       ifHasTurn(game.players, game.nextPlayer, playerId, {
-          val newDeck = Deck(Random.shuffle(game.deck.cards))
-          game.copy(deck = newDeck) -> DeckShuffled(newDeck)
+          if (game.deck.borrowed.isEmpty) {
+            val newDeck = Deck(Random.shuffle(game.deck.cards))
+            game.copy(deck = newDeck) -> DeckShuffled(newDeck)
+          } else
+            game -> InvalidAction(playerId)
         },
         game
       )
@@ -149,13 +152,33 @@ object StartedGameOps {
           {
             val borrowedDeck = deck.returnCard(card)
             borrowedDeck.map {
-              d => sg.copy(deck = d) -> ReturnedCard(card)
+              d => sg.copy(deck = d) -> ReturnedCard(card, 0)
             }.getOrElse(sg -> InvalidAction(player))
           },
           sg
         )
       case _ =>
         game -> InvalidAction(player)
+    }
+
+    def putCardBack(playerId: PlayerId, card: Card, index: Int): (Game, Event) = game match {
+      case sg @ StartedGame(players, deck, currentPlayer, _, _, _) =>
+        ifHasTurn(players, currentPlayer, playerId,
+          {
+            val player = players(currentPlayer)
+            val playerCard = player.hand.find(_.id == card.id)
+            val playerAfter = player.copy(hand = player.hand.filterNot(_.id == card.id))
+            val newDeck = playerCard.map {
+              _ => deck.putBack(card, index)
+            }
+            newDeck.map(d =>
+              sg.copy(
+                deck = d, players = players.updated(currentPlayer, playerAfter)
+              ) -> BackToDeck(card, index)
+            ).getOrElse(sg -> InvalidAction(playerId))
+          },
+          sg
+        )
     }
 
     def steal(player: PlayerId, from: PlayerId, cardIndex: Int): (Game, Event) = game match {

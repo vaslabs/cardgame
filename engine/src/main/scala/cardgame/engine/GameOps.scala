@@ -115,6 +115,13 @@ object GameOps {
         other -> InvalidAction(player)
     }
 
+    def putCardBack(id: PlayerId, card: Card, i: Int): (Game, Event) = game match {
+      case sg: StartedGame =>
+        sg.putCardBack(id, card, i)
+      case _ =>
+        game -> InvalidAction(id)
+    }
+
     def action(gameAction: Action, randomizer: IO[Int]): (Game, Event) = {
       gameAction match {
         case jg: JoinGame =>
@@ -145,6 +152,8 @@ object GameOps {
           steal(s.player, s.from, s.cardIndex)
         case ChooseNextPlayer(playerId, next) =>
           chooseNextPlayer(playerId, next)
+        case PutCardBack(card, player, index) =>
+          putCardBack(player, card, index)
         case p: PlayingGameAction =>
           game -> InvalidAction(p.player)
         case _ =>

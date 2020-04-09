@@ -36,7 +36,7 @@ object GameLoader {
     println(s"trying to read from ${file.getAbsolutePath}")
     val allImageFiles = file.listFiles().filter(_.getName.endsWith(".jpg"))
     val configurationFile = new File(s"decks/${deckId.value.toString}/deck.json")
-    val deckConfiguration = Resource.fromAutoCloseable(
+    val (cardConfiguration, startingRules) = Resource.fromAutoCloseable(
       IO {
         Source.fromFile(configurationFile, "utf-8")
       }
@@ -44,19 +44,28 @@ object GameLoader {
       source =>
         IO.fromEither {
           val json = source.mkString
-          parse(json).flatMap(_.as[Map[String, Int]])
+          for {
+            configuration <- parse(json).map(_.hcursor)
+            cards <- configuration.downField("cards").as[Map[String, Int]]
+            startingRules <- configuration.downField("startingRules").as[Map[String, List[String]]]
+          } yield (cards, startingRules)
         }
     }.unsafeRunSync()
 
-    createDeck(allImageFiles, deckConfiguration, deckId, server)
+    createDeck(allImageFiles, cardConfiguration, startingRules, deckId, server)
 
   }
 
-  private def createDeck(files: Array[File], configuration: Map[String, Int],deckId: DeckId, server: String): Deck = Deck {
-    files.flatMap {
-      file =>
+  private def createDeck(
+                          files: Array[File],
+                          cardConfiguration: Map[String, Int],
+                          startingRules: Map[String, List[String]],
+                          deckId: DeckId, server: String
+  ): Deck = {
+    val cards = files.flatMap(
+      file => {
         val name = file.getName.substring(0, file.getName.size - 4)
-        val cards = configuration.getOrElse(name, 0)
+        val cards = cardConfiguration.getOrElse(name, 0)
         (1 to cards).map {
           _ =>
             HiddenCard(
@@ -64,7 +73,13 @@ object GameLoader {
               URI.create(s"${server}/img/${deckId.value.toString}/${file.getName}")
             )
         }
-    }.toList
+      }
+    ).toList
+    Deck(
+      cards,
+      List.empty,
+      startingRules
+    )
   }
 
 
