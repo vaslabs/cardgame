@@ -20,6 +20,7 @@ object admin {
     .in(auth.bearer)
     .in(query[GameId]("game"))
     .in(query[DeckId]("deck"))
+    .in(query[String]("server"))
     .out(statusCode(StatusCode.Ok))
     .errorOut(statusCode(StatusCode.Forbidden))
 }

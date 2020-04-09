@@ -39,14 +39,14 @@ object ActiveGames {
         _ ! GameProcessor.RunCommand(replyTo, JoinGame(JoiningPlayer(playerId)))
       ).getOrElse(replyTo ! Left(()))
       Behaviors.same
-    case (ctx, LoadGame(token, gameId, deckId, replyTo)) =>
+    case (ctx, LoadGame(token, gameId, deckId, server, replyTo)) =>
       replyTo ! Either.cond(
         token == authToken,
         {
           gameProcessor(ctx, gameId).map {
             game =>
               ctx.spawn(
-                GameLoader.ephemeralBehaviour(deckId, game, replyTo),
+                GameLoader.ephemeralBehaviour(deckId,server, game, replyTo),
                 s"Loader-${gameId.value.toString}"
               )
               ()
@@ -93,6 +93,7 @@ object ActiveGames {
      authToken: String,
      gameId: GameId,
      deckId: DeckId,
+     server: String,
      replyTo: ActorRef[Either[Unit, Unit]]
   ) extends AdminControl
 
@@ -122,9 +123,9 @@ object ActiveGames {
                                                        timeout: Timeout, scheduler: Scheduler): Future[ActionRes] =
         actorRef ? (JoinExistingGame(gameId, playerId, _))
 
-      def startGame(token: String, gameId: GameId, deckId: DeckId)(implicit
+      def startGame(token: String, gameId: GameId, deckId: DeckId, server: String)(implicit
                     timeout: Timeout, scheduler: Scheduler): Future[Either[Unit, Unit]] =
-        actorRef ? (LoadGame(token, gameId, deckId, _))
+        actorRef ? (LoadGame(token, gameId, deckId, server, _))
 
       def action(gameId: GameId, action: PlayingGameAction)
                 (implicit timeout: Timeout, scheduler: Scheduler): Future[ActionRes] = {

@@ -17,11 +17,12 @@ object GameLoader {
 
   def ephemeralBehaviour(
     deckId: DeckId,
+    server: String,
     game: ActorRef[GameProcessor.Protocol],
     replyTo: ActorRef[Either[Unit, Unit]]): Behavior[Protocol] = Behaviors.setup {
     ctx =>
       ctx.log.info(s"Loading deck ${deckId}")
-      ctx.self ! DeckReady(loadDeck(deckId))
+      ctx.self ! DeckReady(loadDeck(deckId, server))
       Behaviors.receiveMessage {
         case DeckReady(deck) =>
           game ! FireAndForgetCommand(StartGame(deck))
@@ -30,7 +31,7 @@ object GameLoader {
       }
   }
 
-  def loadDeck(deckId: DeckId): Deck = {
+  def loadDeck(deckId: DeckId, server: String): Deck = {
     val file = new File(s"decks/${deckId.value.toString}")
     println(s"trying to read from ${file.getAbsolutePath}")
     val allImageFiles = file.listFiles().filter(_.getName.endsWith(".jpg"))
@@ -47,11 +48,11 @@ object GameLoader {
         }
     }.unsafeRunSync()
 
-    createDeck(allImageFiles, deckConfiguration, deckId)
+    createDeck(allImageFiles, deckConfiguration, deckId, server)
 
   }
 
-  private def createDeck(files: Array[File], configuration: Map[String, Int],deckId: DeckId): Deck = Deck {
+  private def createDeck(files: Array[File], configuration: Map[String, Int],deckId: DeckId, server: String): Deck = Deck {
     files.flatMap {
       file =>
         val name = file.getName.substring(0, file.getName.size - 4)
@@ -60,7 +61,7 @@ object GameLoader {
           _ =>
             HiddenCard(
               CardId(UUID.randomUUID()),
-              URI.create(s"http://localhost:8080/img/${deckId.value.toString}/${file.getName}")
+              URI.create(s"${server}/img/${deckId.value.toString}/${file.getName}")
             )
         }
     }.toList

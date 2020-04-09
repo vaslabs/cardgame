@@ -48,8 +48,8 @@ class Routes(activeGames: ActorRef[ActiveGames.Protocol])(implicit scheduler: Sc
   val adminRoutes = admin.createGame.toRoute {
     token =>  activeGames.createGame(token)
   } ~ admin.startGame.toRoute {
-    case (token, gameId, deckId) =>
-      activeGames.startGame(token, gameId, deckId)
+    case (token, gameId, deckId, server) =>
+      activeGames.startGame(token, gameId, deckId, server)
   }
 
 
