@@ -30,6 +30,7 @@ class GameSpec extends AnyWordSpec with Matchers {
     commands, StartingGame(List.empty), randomizer
   )
 
+  def visibleCard(card: Card): VisibleCard = VisibleCard(card.id, card.image)
   "a game" must {
     val deck: Deck = Deck(
       List(
@@ -59,6 +60,8 @@ class GameSpec extends AnyWordSpec with Matchers {
           PlayCard( deck.cards(0).id, PlayerId("123")),
           EndTurn(PlayerId("123")),
           DrawCard(PlayerId("124")),
+          PlayCard(deck.cards(1).id, PlayerId("124")),
+          PlayCard(deck.cards(2).id, PlayerId("124")),
           Leave(PlayerId("124")),
           EndGame
         )
@@ -70,9 +73,11 @@ class GameSpec extends AnyWordSpec with Matchers {
         NextPlayer(PlayerId("124")),
         GotCard(PlayerId("124"), deck.cards(1)),
         NextPlayer(PlayerId("123")),
-        PlayedCard(VisibleCard(deck.cards(0).id, deck.cards(0).image), PlayerId("123")),
+        PlayedCard(visibleCard(deck.cards(0)), PlayerId("123")),
         NextPlayer(PlayerId("124")),
         GotCard(PlayerId("124"), deck.cards(2)),
+        PlayedCard(visibleCard(deck.cards(1)), PlayerId("124")),
+        PlayedCard(visibleCard(deck.cards(2)), PlayerId("124")),
         PlayerLeft(PlayerId("124"), 0),
         GameFinished(PlayerId("123"))
       )
