@@ -73,7 +73,7 @@ class GameSpec extends AnyWordSpec with Matchers {
         PlayedCard(VisibleCard(deck.cards(0).id, deck.cards(0).image), PlayerId("123")),
         NextPlayer(PlayerId("124")),
         GotCard(PlayerId("124"), deck.cards(2)),
-        PlayerLeft(PlayerId("124")),
+        PlayerLeft(PlayerId("124"), 0),
         GameFinished(PlayerId("123"))
       )
 

@@ -129,7 +129,7 @@ case class DeckShuffled(deck: Deck) extends Event
 case class PlayedCard(card: VisibleCard, playerId: PlayerId) extends Event
 case class MoveCard(card: Card, from: PlayerId, to: PlayerId) extends Event
 case class NewDirection(direction: Direction) extends Event
-case class PlayerLeft(player: PlayerId) extends Event
+case class PlayerLeft(player: PlayerId, nextCurrentPlayer: Int) extends Event
 case class CardRecovered(player: PlayerId, card: Card) extends Event
 case class InvalidAction(playerId: Option[PlayerId]) extends Event
 

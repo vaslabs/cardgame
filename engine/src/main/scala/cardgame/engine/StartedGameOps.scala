@@ -82,14 +82,36 @@ object StartedGameOps {
 
 
     def leave(playerId: PlayerId): (Game, Event) = game match {
-      case sg@StartedGame(players, _, currentPlayer, _, _, _) =>
+      case sg@StartedGame(players, _, currentPlayer, direction, _, _) =>
         ifHasTurn(
-          players, currentPlayer, playerId,
-          sg.copy(players.filterNot(_.id == playerId)) -> PlayerLeft(playerId),
+          players, currentPlayer, playerId, {
+            val killingPlayer = players(currentPlayer)
+            if (players.size > 1 && killingPlayer.hand.isEmpty) {
+              val remainingPlayers = players.filterNot(_.id == playerId)
+              val nextCurrentPlayer = if (currentPlayer > remainingPlayers.size - 1) {
+                direction match {
+                  case Clockwise =>
+                    0
+                  case AntiClockwise =>
+                    remainingPlayers.size - 1
+                }
+              } else if (currentPlayer == 0) {
+                direction match {
+                  case Clockwise =>
+                    0
+                  case AntiClockwise =>
+                    remainingPlayers.size - 1
+                }
+              } else {
+                currentPlayer
+              }
+              sg.copy(players = remainingPlayers, nextPlayer = nextCurrentPlayer) -> PlayerLeft(playerId, nextCurrentPlayer)
+            } else {
+              sg -> InvalidAction(playerId)
+            }
+          },
           sg
         )
-      case _ =>
-        game -> InvalidAction(playerId)
     }
 
     def play(playerId: PlayerId, cardId: CardId): (Game, Event) = game match {
