@@ -59,6 +59,7 @@ case class GiveCard(card: Card, player: PlayerId, to: PlayerId) extends PlayingG
 case class SwitchDirection(player: PlayerId) extends PlayingGameAction
 case class ChooseNextPlayer(player: PlayerId, next: PlayerId) extends PlayingGameAction
 case class Leave(player: PlayerId) extends PlayingGameAction
+case class RecoverCard(player: PlayerId, cardId: CardId) extends PlayingGameAction
 case class EndTurn(player: PlayerId) extends PlayingGameAction
 
 case object EndGame extends Action
@@ -129,6 +130,7 @@ case class PlayedCard(card: VisibleCard, playerId: PlayerId) extends Event
 case class MoveCard(card: Card, from: PlayerId, to: PlayerId) extends Event
 case class NewDirection(direction: Direction) extends Event
 case class PlayerLeft(player: PlayerId) extends Event
+case class CardRecovered(player: PlayerId, card: Card) extends Event
 case class InvalidAction(playerId: Option[PlayerId]) extends Event
 
 object InvalidAction {

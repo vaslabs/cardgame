@@ -210,9 +210,26 @@ object StartedGameOps {
           },
           sg
         )
-      case other =>
-        other -> InvalidAction(player)
     }
+
+    def recoverCard(playerId: PlayerId, cardId: CardId): (Game, Event) = ifHasTurn(
+      game.players, game.nextPlayer, playerId, {
+        game.discardPile.cards.find(_.id == cardId).map(
+          c => HiddenCard(c.id, c.image)
+        ).map { card =>
+          val discardPileCards = game.discardPile.cards.filterNot(_.id == cardId)
+          val player = game.players(game.nextPlayer)
+
+          val giveCardToPlayer = player.copy(hand = player.hand :+ card)
+
+          game.copy(
+            players = game.players.updated(game.nextPlayer, giveCardToPlayer),
+            discardPile = DiscardPile(discardPileCards)
+          ) -> CardRecovered(playerId, card)
+        }.getOrElse(game -> InvalidAction(playerId))
+      },
+      game
+    )
   }
 
   private def ifHasTurn(p: List[PlayingPlayer], ind: Int, pId: PlayerId, t: => (Game, Event), defaultGame: Game): (Game, Event) =

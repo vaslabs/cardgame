@@ -193,6 +193,32 @@ class GameSpec extends AnyWordSpec with Matchers {
       engine.GameState(commands, game, randomizer).start.toList mustBe
         expectedEvents
     }
+
+    "recover cards from discard pile" in {
+      val expectedPlayedCard = player1.hand.head
+
+      val commands = LazyList(
+        PlayCard(player1.hand.head.id, player1.id),
+        EndTurn(player1.id),
+        RecoverCard(player2.id, expectedPlayedCard.id),
+        PlayCard(player1.hand.head.id, player2.id)
+      )
+
+      val expectedEvents = LazyList(
+        PlayedCard(
+          VisibleCard(expectedPlayedCard.id, expectedPlayedCard.image), player1.id
+        ),
+        NextPlayer(player2.id),
+        CardRecovered(player2.id, HiddenCard(expectedPlayedCard.id, expectedPlayedCard.image)),
+        PlayedCard(
+          VisibleCard(expectedPlayedCard.id, expectedPlayedCard.image),
+          player2.id
+        )
+      )
+
+      engine.GameState(commands, game, randomizer).start.toList mustBe
+        expectedEvents
+    }
   }
 
   private def aCard = HiddenCard(
