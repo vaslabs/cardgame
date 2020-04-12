@@ -52,24 +52,27 @@ object StartingGameOps {
       }
     }
 
-    val exactlyOneCards = deck.startingRules.getOrElse("exactlyOne", List.empty)
-    val exclude = deck.startingRules.getOrElse("no", List.empty)
+    val exactlyOneCards = deck.startingRules.exactlyOne
+    val exclude = deck.startingRules.no
+    val handSize = deck.startingRules.hand
 
     val guaranteed = deck.cards.filter(
       c =>
         exactlyOneCards.contains(cardName(c.image))
     ).take(players.size)
-    if (guaranteed.size < players.size) {
+    if (guaranteed.size < players.size && guaranteed.nonEmpty) {
       println("players are more than the guaranteed cards, will not give starting hands")
       deck -> players
     } else {
 
       val takenCards = mutable.HashSet.empty[CardId]
 
-      val playersWithGuaranteedCard = players.lazyZip(guaranteed).map {
-        case (player, card) =>
-          takenCards += card.id
-          player.copy(hand = player.hand :+ card)
+      val playersWithGuaranteedCard = if (guaranteed.isEmpty)
+        players else
+          players.lazyZip(guaranteed).map {
+          case (player, card) =>
+            takenCards += card.id
+            player.copy(hand = player.hand :+ card)
       }
 
       val deckWithoutGuaranteedCards = deck.cards.filterNot(
@@ -86,13 +89,13 @@ object StartingGameOps {
 
       val playersWithHand = playersWithGuaranteedCard.zipWithIndex.map {
         case (player, index) =>
-          val cards = shuffledCards.slice(index * 4, index * 4 + 4)
+          val cards = shuffledCards.slice(index * handSize, index * handSize + handSize)
           takenCards ++= cards.map(_.id).toSet
           player.copy(hand = Random.shuffle(player.hand ++ cards))
       }
       println(playersWithGuaranteedCard)
 
-      Deck(Random.shuffle(deck.cards.filterNot(c => takenCards.contains(c.id))), List.empty, deck.startingRules) ->
+      Deck(Random.shuffle(deck.cards.filterNot(c => takenCards.contains(c.id))), None, deck.startingRules) ->
         playersWithHand
     }
 

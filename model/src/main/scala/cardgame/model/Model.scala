@@ -83,7 +83,26 @@ case class VisibleCard(id: CardId, image: URI) extends Card
 
 case class CardId(value: UUID)
 
-case class Deck(cards: List[Card], borrowed: List[Card], startingRules: Map[String, List[String]]) {
+case class StartingRules(
+  no: List[String],
+  exactlyOne: List[String],
+  hand: Int
+)
+object StartingRules {
+  def empty = StartingRules(List.empty, List.empty, 0)
+}
+case class BorrowedCards(playerId: PlayerId, cards: List[Card]) {
+  def take(cardId: CardId): Option[BorrowedCards] = {
+    if (cards.isEmpty)
+      None
+    else
+      Some(copy(cards = cards.filterNot(_.id == cardId)))
+  }
+  def put(card: Card, playerId: PlayerId): BorrowedCards =
+    copy(playerId, cards :+ card)
+}
+
+case class Deck(cards: List[Card], borrowed: Option[BorrowedCards], startingRules: StartingRules) {
   def putBack(card: Card, index: Int): Deck =
     if (index >= cards.size)
       Deck(cards :+ card)
@@ -93,21 +112,34 @@ case class Deck(cards: List[Card], borrowed: List[Card], startingRules: Map[Stri
       this
 
 
-  def borrow(index: Int): Deck =
-    Deck(cards.patch(index, Nil, 1), borrowed :+ cards(index))
+  def borrow(index: Int, playerId: PlayerId): (Deck, Option[Card]) = {
+    val card = cards.lift(index)
+    card.map {
+      c => copy(
+        cards.patch(index, Nil, 1),
+        borrowed.map(b => b.put(c, playerId)) orElse
+          Some(
+            BorrowedCards(
+              playerId, List(cards(index))
+            )
+          )
+      ) -> Some(c)
+    }.getOrElse(this -> None)
+  }
 
   def returnCard(cardId: CardId): Option[Deck] = {
-    val toReturn = borrowed.find(_.id == cardId)
+    val toReturn = borrowed.flatMap(b => b.cards.find(_.id == cardId))
+
     toReturn.map(
-      c => Deck(c +: cards, borrowed.filterNot(_.id == cardId))
+      c => copy(c +: cards, borrowed.flatMap(_.take(c.id)))
     )
   }
 }
 
 object Deck {
-  def apply(cards: List[Card]): Deck = Deck(cards, List.empty, Map.empty)
+  def apply(cards: List[Card]): Deck = Deck(cards, None, StartingRules.empty)
 
-  def apply(cards: List[Card], borrowed: List[Card]): Deck = Deck(cards, borrowed, Map.empty)
+  def apply(cards: List[Card], borrowed: Option[BorrowedCards]): Deck = Deck(cards, borrowed, StartingRules.empty)
 
 
 }

@@ -28,10 +28,10 @@ object GameProcessor {
 
   private def personalise(playerId: PlayerId, game: Game): Game = {
     game match {
-      case g @ StartedGame(players, _, _, _, _, _) =>
+      case g @ StartedGame(players, deck, _, _, _, _) =>
         players.indexWhere(_.id == playerId) match {
           case n if n >= 0 =>
-            g.copy(players.updated(n, turnVisible(players(n))))
+            g.copy(players.updated(n, turnVisible(players(n))), turnVisible(deck, playerId))
           case _ => game
         }
       case other => other
@@ -40,6 +40,14 @@ object GameProcessor {
 
   private def turnVisible(player: PlayingPlayer): PlayingPlayer =
         player.copy(hand = player.hand.map(c => VisibleCard(c.id, c.image)))
+
+  private def turnVisible(deck: Deck, playerId: PlayerId): Deck = {
+    deck.borrowed.filter(
+      b => b.playerId == playerId
+    ).map(b => b.cards.map(c => VisibleCard(c.id, c.image)))
+      .map(vc => deck.copy(borrowed = Some(BorrowedCards(playerId, vc))))
+      .getOrElse(deck)
+  }
 
 
   sealed trait Protocol

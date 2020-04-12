@@ -12,7 +12,7 @@ object StartedGameOps {
       ifHasTurn(game.players, game.nextPlayer, playerId, {
         val player = game.players.find(_.id == playerId).get
         val draw = game.deck.cards.take(1)
-        val newDeck = Deck(game.deck.cards.drop(1), List.empty)
+        val newDeck = Deck(game.deck.cards.drop(1))
         val newHand = player.copy(hand = player.hand ++ draw)
         game.copy(players = game.players.updated(game.nextPlayer, newHand), deck = newDeck) ->
           draw.headOption.map(c => GotCard(playerId, c))
@@ -39,7 +39,7 @@ object StartedGameOps {
           {
             val player = game.players.find(_.id == playerId).get
             val draw = game.deck.cards.takeRight(1)
-            val newDeck = Deck(game.deck.cards.dropRight(1), List.empty)
+            val newDeck = Deck(game.deck.cards.dropRight(1))
             val newHand = player.copy(hand = player.hand ++ draw)
 
             game.copy(
@@ -154,10 +154,9 @@ object StartedGameOps {
       case sg@StartedGame(players, deck, currentPlayer, _, _, _) =>
         ifHasTurn(players, currentPlayer, player, {
           if (index < deck.cards.size && index >= 0) {
-            val borrowDeck = deck.borrow(index)
-            borrowDeck.borrowed.lastOption.map {
-              c => sg.copy(deck = borrowDeck) -> BorrowedCard(c, player)
-            }.getOrElse(sg -> InvalidAction(player))
+            val (borrowDeck, card) = deck.borrow(index, player)
+            card.map(c => sg.copy(deck = borrowDeck) -> BorrowedCard(c, player) )
+              .getOrElse(sg -> InvalidAction(player))
           } else {
             game -> InvalidAction(player)
           }

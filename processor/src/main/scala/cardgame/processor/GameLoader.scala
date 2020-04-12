@@ -6,12 +6,13 @@ import java.util.UUID
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
-import cardgame.model.{CardId, Deck, DeckId, HiddenCard, StartGame}
+import cardgame.model.{CardId, Deck, DeckId, HiddenCard, StartGame, StartingRules}
 import cardgame.processor.GameProcessor.FireAndForgetCommand
 import cats.effect.{IO, Resource}
 
 import scala.io.Source
 import io.circe.parser._
+import io.circe.generic.auto._
 
 object GameLoader {
 
@@ -47,7 +48,7 @@ object GameLoader {
           for {
             configuration <- parse(json).map(_.hcursor)
             cards <- configuration.downField("cards").as[Map[String, Int]]
-            startingRules <- configuration.downField("startingRules").as[Map[String, List[String]]]
+            startingRules <- configuration.downField("startingRules").as[StartingRules]
           } yield (cards, startingRules)
         }
     }.unsafeRunSync()
@@ -59,7 +60,7 @@ object GameLoader {
   private def createDeck(
                           files: Array[File],
                           cardConfiguration: Map[String, Int],
-                          startingRules: Map[String, List[String]],
+                          startingRules: StartingRules,
                           deckId: DeckId, server: String
   ): Deck = {
     val cards = files.flatMap(
@@ -77,7 +78,7 @@ object GameLoader {
     ).toList
     Deck(
       cards,
-      List.empty,
+      None,
       startingRules
     )
   }

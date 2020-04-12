@@ -50,39 +50,56 @@ class GameSpec extends AnyWordSpec with Matchers {
     }
 
     "start with a given deck" in {
+      val firstPlayer = PlayerId("123")
+      val unshuffleDeck = Seq(
+        BorrowCard(firstPlayer, 0),
+        BorrowCard(firstPlayer, 0),
+        BorrowCard(firstPlayer, 0),
+        ReturnCard(firstPlayer, deck.cards(2).id),
+        ReturnCard(firstPlayer, deck.cards(1).id),
+        ReturnCard(firstPlayer, deck.cards(0).id)
+      )
+      val unshuffledDeckEvents = Seq(
+        ReturnedCard(deck.cards(2).id, 0),
+        ReturnedCard(deck.cards(1).id, 0),
+        ReturnedCard(deck.cards(0).id, 0)
+      )
       val progress = initialState(
         commands ++ Seq(
-          StartGame(deck),
-          DrawCard(PlayerId("123")),
-          EndTurn(PlayerId("123")),
-          DrawCard(PlayerId("124")),
-          EndTurn(PlayerId("124")),
-          PlayCard( deck.cards(0).id, PlayerId("123")),
-          EndTurn(PlayerId("123")),
-          DrawCard(PlayerId("124")),
-          PlayCard(deck.cards(1).id, PlayerId("124")),
-          PlayCard(deck.cards(2).id, PlayerId("124")),
-          Leave(PlayerId("124")),
-          EndGame
+          StartGame(deck)) ++ unshuffleDeck ++
+          Seq(
+            DrawCard(PlayerId("123")),
+            EndTurn(PlayerId("123")),
+            DrawCard(PlayerId("124")),
+            EndTurn(PlayerId("124")),
+            PlayCard( deck.cards(0).id, PlayerId("123")),
+            EndTurn(PlayerId("123")),
+            DrawCard(PlayerId("124")),
+            PlayCard(deck.cards(1).id, PlayerId("124")),
+            PlayCard(deck.cards(2).id, PlayerId("124")),
+            Leave(PlayerId("124")),
+            EndGame
         )
       )
 
-      val expectedEvents = players.map(_.id).map(PlayerJoined) ++ List(
-        GameStarted(PlayerId("123")),
-        GotCard(PlayerId("123"), deck.cards(0)),
-        NextPlayer(PlayerId("124")),
-        GotCard(PlayerId("124"), deck.cards(1)),
-        NextPlayer(PlayerId("123")),
-        PlayedCard(visibleCard(deck.cards(0)), PlayerId("123")),
-        NextPlayer(PlayerId("124")),
-        GotCard(PlayerId("124"), deck.cards(2)),
-        PlayedCard(visibleCard(deck.cards(1)), PlayerId("124")),
-        PlayedCard(visibleCard(deck.cards(2)), PlayerId("124")),
-        PlayerLeft(PlayerId("124"), 0),
-        GameFinished(PlayerId("123"))
+      val expectedEvents = players.map(_.id).map(PlayerJoined) ++
+        List(GameStarted(PlayerId("123"))) ++
+        unshuffledDeckEvents ++
+        Seq(
+          GotCard(PlayerId("123"), deck.cards(0)),
+          NextPlayer(PlayerId("124")),
+          GotCard(PlayerId("124"), deck.cards(1)),
+          NextPlayer(PlayerId("123")),
+          PlayedCard(visibleCard(deck.cards(0)), PlayerId("123")),
+          NextPlayer(PlayerId("124")),
+          GotCard(PlayerId("124"), deck.cards(2)),
+          PlayedCard(visibleCard(deck.cards(1)), PlayerId("124")),
+          PlayedCard(visibleCard(deck.cards(2)), PlayerId("124")),
+          PlayerLeft(PlayerId("124"), 0),
+          GameFinished(PlayerId("123"))
       )
 
-      progress.start.toList mustBe expectedEvents
+      progress.start.toList.filterNot(_.isInstanceOf[BorrowedCard]) mustBe expectedEvents
     }
 
   }
@@ -231,3 +248,9 @@ class GameSpec extends AnyWordSpec with Matchers {
     URI.create(s"http://localhost:8080/card${Random.nextInt(100)}")
   )
 }
+
+/*
+List(PlayerJoined(PlayerId(123)), PlayerJoined(PlayerId(124)), GameStarted(PlayerId(123)), BorrowedCard(HiddenCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3),PlayerId(123)), BorrowedCard(HiddenCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1),PlayerId(123)), BorrowedCard(HiddenCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2),PlayerId(123)), ReturnedCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),0), ReturnedCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),0), ReturnedCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),0), GotCard(PlayerId(123),HiddenCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1)), NextPlayer(PlayerId(124)), GotCard(PlayerId(124),HiddenCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2)), NextPlayer(PlayerId(123)), PlayedCard(VisibleCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1),PlayerId(123)), NextPlayer(PlayerId(124)), GotCard(PlayerId(124),HiddenCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3)), PlayedCard(VisibleCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2),PlayerId(124)), PlayedCard(VisibleCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3),PlayerId(124)), PlayerLeft(PlayerId(124),0), GameFinished(PlayerId(123)))
+List(PlayerJoined(PlayerId(123)), PlayerJoined(PlayerId(124)), GameStarted(PlayerId(123)), BorrowedCard(HiddenCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1),PlayerId(123)), BorrowedCard(HiddenCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2),PlayerId(123)), BorrowedCard(HiddenCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3),PlayerId(123)), ReturnedCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),0), ReturnedCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),0), ReturnedCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),0), GotCard(PlayerId(123),HiddenCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1)), NextPlayer(PlayerId(124)), GotCard(PlayerId(124),HiddenCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2)), NextPlayer(PlayerId(123)), PlayedCard(VisibleCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1),PlayerId(123)), NextPlayer(PlayerId(124)), GotCard(PlayerId(124),HiddenCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3)), PlayedCard(VisibleCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2),PlayerId(124)), PlayedCard(VisibleCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3),PlayerId(124)), PlayerLeft(PlayerId(124),0), GameFinished(PlayerId(123))) (GameSpec.scala:105)
+
+ */
