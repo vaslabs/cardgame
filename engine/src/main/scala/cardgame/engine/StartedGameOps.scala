@@ -1,6 +1,7 @@
 package cardgame.engine
 
 import cardgame.model._
+import cats.effect.IO
 
 import scala.util.Random
 
@@ -251,6 +252,17 @@ object StartedGameOps {
       },
       game
     )
+
+    def throwDiceS(playerId: PlayerId, howMany: Int, sides: Int, randomizer: IO[Int]): (Game, Event) = game match {
+      case sg @ StartedGame(players, _, current, _, _, _) =>
+        ifHasTurn(players, current, playerId, {
+          val dice = (1 to howMany).map {
+            _ => Math.abs(randomizer.unsafeRunSync())
+          }.map(v => Die(sides, v % sides + 1))
+          sg -> DiceThrow(playerId, dice.toList)
+        }, sg
+        )
+    }
   }
 
   private def ifHasTurn(p: List[PlayingPlayer], ind: Int, pId: PlayerId, t: => (Game, Event), defaultGame: Game): (Game, Event) =
@@ -260,8 +272,9 @@ object StartedGameOps {
       defaultGame -> InvalidAction(pId)
     ).merge
 
+
   private def hasTurn(players: List[PlayingPlayer], nextPlayer: Int, playerTryingToPlay: PlayerId): Boolean =
-    players.zipWithIndex.find(_._1.id == playerTryingToPlay).exists(_._2 == nextPlayer)
+  players.zipWithIndex.find(_._1.id == playerTryingToPlay).exists(_._2 == nextPlayer)
 
   private def shiftRight(size: Int, current: Int): Int =
     if (current == size - 1)
@@ -274,6 +287,7 @@ object StartedGameOps {
       size - 1
     else
       current - 1
+
 
 
 }

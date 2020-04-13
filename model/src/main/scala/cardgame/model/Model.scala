@@ -61,6 +61,7 @@ case class ChooseNextPlayer(player: PlayerId, next: PlayerId) extends PlayingGam
 case class Leave(player: PlayerId) extends PlayingGameAction
 case class RecoverCard(player: PlayerId, cardId: CardId) extends PlayingGameAction
 case class EndTurn(player: PlayerId) extends PlayingGameAction
+case class ThrowDice(player: PlayerId, numberOfDice: Int, sides: Int) extends PlayingGameAction
 
 case object EndGame extends Action
 
@@ -164,7 +165,9 @@ case class NewDirection(direction: Direction) extends Event
 case class PlayerLeft(player: PlayerId, nextCurrentPlayer: Int) extends Event
 case class CardRecovered(player: PlayerId, card: Card) extends Event
 case class InvalidAction(playerId: Option[PlayerId]) extends Event
+case class DiceThrow(playerId: PlayerId, dice: List[Die]) extends Event
 
+case class Die(sides: Int, result: Int)
 object InvalidAction {
   def apply(): InvalidAction = InvalidAction(None)
   def apply(playerId: PlayerId): InvalidAction =

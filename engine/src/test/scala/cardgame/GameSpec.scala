@@ -2,6 +2,7 @@ package cardgame
 
 import java.net.URI
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicInteger
 
 import cardgame.engine.GameState
 import cats.effect.IO
@@ -240,6 +241,23 @@ class GameSpec extends AnyWordSpec with Matchers {
 
       engine.GameState(commands, game, randomizer).start.toList mustBe
         expectedEvents
+    }
+
+    "players can request dice throw" in {
+
+      val commands = LazyList(
+        ThrowDice(players(0).id, 2, 6)
+      )
+      val atomicInteger = new AtomicInteger(-1)
+      val dieRandomizer = IO {
+        atomicInteger.getAndAdd(1) % 6 + 1
+      }
+
+      engine.GameState(commands, game, dieRandomizer).start.toList mustBe List(
+        DiceThrow(players(0).id, List(Die(6, 1), Die(6, 2)))
+      )
+
+
     }
   }
 

@@ -129,6 +129,13 @@ object GameOps {
         game -> InvalidAction(player)
     }
 
+    def throwDice(playerId: PlayerId, howMany: Int, sides: Int, randomizer: IO[Int]): (Game, Event) = game match {
+      case sg: StartedGame =>
+        sg.throwDiceS(playerId, howMany, sides, randomizer)
+      case _ =>
+        game -> InvalidAction()
+    }
+
     def action(gameAction: Action, randomizer: IO[Int]): (Game, Event) = {
       gameAction match {
         case jg: JoinGame =>
@@ -163,6 +170,8 @@ object GameOps {
           putCardBack(player, card, index)
         case RecoverCard(player, cardId) =>
           recover(player, cardId)
+        case ThrowDice(p, howMany, sides) =>
+          throwDice(p, howMany, sides, randomizer)
         case p: PlayingGameAction =>
           game -> InvalidAction(p.player)
         case _ =>
