@@ -47,21 +47,25 @@ sealed trait PlayingGameAction extends Action {
   def player: PlayerId
 }
 
-case class Shuffle(player: PlayerId) extends PlayingGameAction
-case class DrawCard(player: PlayerId) extends PlayingGameAction
-case class BottomDraw(player: PlayerId) extends PlayingGameAction
-case class PlayCard(card: CardId, player: PlayerId) extends PlayingGameAction
-case class BorrowCard(player: PlayerId, index: Int) extends PlayingGameAction
-case class ReturnCard(player: PlayerId, cardId: CardId) extends PlayingGameAction
-case class StealCard(player: PlayerId, from: PlayerId, cardIndex: Int) extends PlayingGameAction
-case class PutCardBack(card: Card, player: PlayerId, index: Int) extends PlayingGameAction
-case class GiveCard(card: Card, player: PlayerId, to: PlayerId) extends PlayingGameAction
-case class SwitchDirection(player: PlayerId) extends PlayingGameAction
-case class ChooseNextPlayer(player: PlayerId, next: PlayerId) extends PlayingGameAction
-case class Leave(player: PlayerId) extends PlayingGameAction
-case class RecoverCard(player: PlayerId, cardId: CardId) extends PlayingGameAction
-case class EndTurn(player: PlayerId) extends PlayingGameAction
-case class ThrowDice(player: PlayerId, numberOfDice: Int, sides: Int) extends PlayingGameAction
+sealed trait MustHaveTurnAction extends PlayingGameAction
+sealed trait FreeAction extends PlayingGameAction
+
+case class Shuffle(player: PlayerId) extends MustHaveTurnAction
+case class DrawCard(player: PlayerId) extends MustHaveTurnAction
+case class BottomDraw(player: PlayerId) extends MustHaveTurnAction
+case class PlayCard(card: CardId, player: PlayerId) extends MustHaveTurnAction
+case class BorrowCard(player: PlayerId, index: Int) extends MustHaveTurnAction
+case class ReturnCard(player: PlayerId, cardId: CardId) extends MustHaveTurnAction
+case class StealCard(player: PlayerId, from: PlayerId, cardIndex: Int) extends MustHaveTurnAction
+case class PutCardBack(card: Card, player: PlayerId, index: Int) extends MustHaveTurnAction
+case class GiveCard(card: Card, player: PlayerId, to: PlayerId) extends MustHaveTurnAction
+case class SwitchDirection(player: PlayerId) extends MustHaveTurnAction
+case class ChooseNextPlayer(player: PlayerId, next: PlayerId) extends MustHaveTurnAction
+case class Leave(player: PlayerId) extends MustHaveTurnAction
+case class RecoverCard(player: PlayerId, cardId: CardId) extends MustHaveTurnAction
+case class EndTurn(player: PlayerId) extends MustHaveTurnAction
+case class ThrowDice(player: PlayerId, numberOfDice: Int, sides: Int) extends MustHaveTurnAction
+case class ShuffleHand(player: PlayerId) extends FreeAction
 
 case object EndGame extends Action
 
@@ -166,6 +170,7 @@ case class PlayerLeft(player: PlayerId, nextCurrentPlayer: Int) extends Event
 case class CardRecovered(player: PlayerId, card: Card) extends Event
 case class InvalidAction(playerId: Option[PlayerId]) extends Event
 case class DiceThrow(playerId: PlayerId, dice: List[Die]) extends Event
+case class ShuffledHand(playerId: PlayerId) extends Event
 
 case class Die(sides: Int, result: Int)
 object InvalidAction {
