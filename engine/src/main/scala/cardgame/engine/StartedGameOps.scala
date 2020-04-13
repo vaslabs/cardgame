@@ -217,7 +217,7 @@ object StartedGameOps {
           p.copy(hand = Random.shuffle(p.hand))
       }.map {
         p =>
-          game.copy(players = game.players.updated(game.nextPlayer, p)) -> ShuffledHand(playerId)
+          game.copy(players = game.players.updated(game.nextPlayer, p)) -> ShuffledHand(playerId, p.hand)
       }.getOrElse(game -> InvalidAction(playerId))
     }
 
