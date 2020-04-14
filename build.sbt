@@ -39,6 +39,7 @@ lazy val service = (project in file("service"))
   .settings(libraryDependencies ++= Dependencies.Modules.service)
   .enablePlugins(DockerPlugin, JavaAppPackaging, AshScriptPlugin)
   .settings(dockerSettings)
+  .settings(packageSettings)
   .settings(versioningSettings)
   .settings(compilerSettings)
   .dependsOn(endpoints, processor, engine)
@@ -49,6 +50,14 @@ lazy val dockerSettings = Seq(
   dockerUsername := Some("vaslabs"),
   dockerExposedPorts := List(8080)
 )
+import NativePackagerHelper._
+
+lazy val packageSettings = Seq(
+  mappings in Universal ++= directory("sample_decks") :+ file("sample_decks") -> "decks",
+  maintainer := "vaslabsco@gmail.com"
+)
+
+
 
 lazy val noPublishSettings = Seq(
   publish / skip := true
