@@ -90,4 +90,4 @@ I'm writing the guide for the front end soon, watch this space
 
 - Actions are done through http
 - Results are retrieve via a server sent event stream
-- If clients get out of sink they can retrieve the whole game state  
+- If clients get out of sync they can retrieve the whole game state  
