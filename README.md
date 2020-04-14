@@ -4,7 +4,7 @@ WIP: A generic purpose online card game
 
 ## Setting up
 
-First, check if you have Java install on your laptop.
+First, check if you have Java installed on your computer.
 
 ### Starting the server
 
