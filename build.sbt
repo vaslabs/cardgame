@@ -53,7 +53,10 @@ lazy val dockerSettings = Seq(
 import NativePackagerHelper._
 
 lazy val packageSettings = Seq(
-  mappings in Universal ++= directory("sample_decks") :+ file("sample_decks") -> "decks",
+  mappings in Universal ++= contentOf("sample_decks").map {
+    case (file, name) =>
+      file -> s"decks/$name"
+  },
   maintainer := "vaslabsco@gmail.com"
 )
 
