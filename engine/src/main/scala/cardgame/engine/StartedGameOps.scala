@@ -217,7 +217,8 @@ object StartedGameOps {
           p.copy(hand = Random.shuffle(p.hand))
       }.map {
         p =>
-          game.copy(players = game.players.updated(game.nextPlayer, p)) -> ShuffledHand(playerId, p.hand)
+          val plIndex = game.players.indexWhere(_.id == p.id)
+          game.copy(players = game.players.updated(plIndex, p)) -> ShuffledHand(playerId, p.hand)
       }.getOrElse(game -> InvalidAction(playerId))
     }
 
