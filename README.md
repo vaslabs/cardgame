@@ -69,3 +69,25 @@ The guide ends here. You need a few more things to play:
 
 
 I'm writing the guide for the front end soon, watch this space
+
+
+## Supported actions
+
+- Game admin creating games
+- Multiple players can join the game
+- Actions supported:
+    * Draw cards (from top and bottom)
+    * Borrow cards from deck (must be returned by end of turn)
+    * Players switching turns
+    * Stealing cards from each other
+    * Throwing cards to discard pile
+    * Retrieving cards from discard pile
+    * Throwing dice
+    * Shuffling hand
+    * Returning a card back to deck at any position, face up or face down
+    * Players can leave the game if they have an empty hand
+    * Players can switch direction of play (just indicative)
+
+- Actions are done through http
+- Results are retrieve via a server sent event stream
+- If clients get out of sink they can retrieve the whole game state  
