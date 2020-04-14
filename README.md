@@ -4,6 +4,8 @@ WIP: A generic purpose online card game
 
 ## Setting up
 
+First, check if you have Java install on your laptop.
+
 ### Starting the server
 
 1. Download the release from https://github.com/vaslabs/cardgame/releases/tag/1.0
