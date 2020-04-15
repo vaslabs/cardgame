@@ -68,13 +68,81 @@ The guide ends here. You need a few more things to play:
 - Somewhere to host your images so you don't run out of ngrok connections.
 
 
-I'm writing the guide for the front end soon, watch this space
+## Using the front end
+
+The UI is available [here](https://github.com/vaslabs/cardgame-js) .
+
+Start the angular app with
+```bash
+ng serve
+```
+Visit from your browser [http://localhost:4200] .
+
+You can host this application with gh-pages or you can use my version [here](https://cardgame.vaslabs.io/board)
+
+Note that this is just a front end, it doesn't serve any images , it just gives a game board view and allows you to do the in-game actions.
+
+In order to join a game add the game id, a username and the server (if you are running the server locally, http://localhost:8080 will work for you, otherwise if you are using ngrok give to your friends the ngrok url).
+
+### Autojoin
+Once a game has been created you can use this link to help your friends join more easily:
+`http://localhost:4200/setup?game-id=b9da8c63-ef9b-4b2d-9269-b0ed2f4dbaee&server=https://0000000.ngrok.io`
+(The server is just an example, replace with your own publicly available hostname).
+
+You will see the players list being populated as more of your friends join.
+
+### Starting the game
+Now that you are ready you can start a game. 
+
+To start a game you need:
+1. A *deck*
+2. The game id
+3. A location for serving the images from your deck
+4. Your admin token
+
+There's already a premade deck [provided](https://github.com/vaslabs/cardgame/tree/master/sample_decks/ee61823d-3128-4c30-b0e7-8f2d0074da8a).
+
+So let's start with that.
+
+To start the game with the sample deck provided you can do:
+```bash
+curl --location --request PATCH 'localhost:8080/games-admin?game=514b2598-ac38-4a0e-889b-2e3e2505fb55&deck=ee61823d-3128-4c30-b0e7-8f2d0074da8a&server=https://vaslabs.github.io/cardgame-cdn' \
+--header 'Authorization: Bearer 642293d4-fd03-4249-9619-ea3f110932ec'
+```
+
+This will start a game with the sample deck, shuffle and give 7 cards to each player and select the first player to start.
+
+The player in green highlight starts first. In order for other players to do any actions, you need to click the `select next` attached next to their username.
+
+### Create your own deck
+In order to create your own deck you need:
+- Images in jpg format.
+- A configuration
+
+#### Configuration
+
+The configuration is a json file that has this information:
+1. How many copies of each card exist
+2. How the game starts
+
+For example, if you have card hero.jpg and you want to give to each player at least one hero you can do it in the [starting section](https://github.com/vaslabs/cardgame/blob/master/sample_decks/ee61823d-3128-4c30-b0e7-8f2d0074da8a/deck.json#L45)
+```json
+"startingRules": {
+    "exactlyOne": ["hero"],
+    "no": [],
+    "hand": 5
+}
+```
+
+Once you click start, the shuffling rules will apply. This game is not build for complex logic it only gives the primitives
+for game creation. You can improvise to play more games and even combine with other online platforms such as online drawing tools and video calls to play more board games.
 
 
 ## Supported actions
 
 - Game admin creating games
 - Multiple players can join the game
+- Game admin starts the game with a deck and starting rules (initial player hand, initial restrictions)
 - Actions supported:
     * Draw cards (from top and bottom)
     * Borrow cards from deck (must be returned by end of turn)
