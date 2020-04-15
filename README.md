@@ -76,7 +76,7 @@ Start the angular app with
 ```bash
 ng serve
 ```
-Visit from your browser [http://localhost:4200] .
+Visit from your browser [http://localhost:4200](http://localhost:4200) .
 
 You can host this application with gh-pages or you can use my version [here](https://cardgame.vaslabs.io/board)
 
