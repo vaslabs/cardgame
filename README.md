@@ -1,6 +1,9 @@
 ![](https://github.com/vaslabs/cardgame/workflows/Scala%20CI/badge.svg)
 
 # cardgame
+
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/ab2e989546574b1abff42ab2e2f4f5b6)](https://app.codacy.com/manual/vaslabs/cardgame?utm_source=github.com&utm_medium=referral&utm_content=vaslabs/cardgame&utm_campaign=Badge_Grade_Dashboard)
+
 WIP: A generic purpose online card game
 
 
