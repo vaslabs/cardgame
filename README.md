@@ -1,3 +1,5 @@
+![](https://github.com/vaslabs/cardgame/workflows/Scala%20CI/badge.svg)
+
 # cardgame
 WIP: A generic purpose online card game
 
