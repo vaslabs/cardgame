@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior, Scheduler}
-import cardgame.model.{DeckId, Event, Game, GameId, JoinGame, JoiningPlayer, PlayerId, PlayingGameAction, StartingGame}
+import cardgame.model.{ClockedResponse, DeckId, Game, GameId, JoinGame, JoiningPlayer, PlayerId, PlayingGameAction, RemoteClock, StartingGame}
 import cats.effect.IO
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.util.Timeout
@@ -21,7 +21,7 @@ object ActiveGames {
         val randomizer = new Random(gameId.getMostSignificantBits)
         val intRandomizer = IO.delay(randomizer.nextInt())
         ctx.spawn(
-          GameProcessor.behavior(StartingGame(List.empty), intRandomizer),
+          GameProcessor.behavior(StartingGame(List.empty), intRandomizer, 0L, RemoteClock(Map.empty)),
           gameId.toString
         )
         GameId(gameId)
@@ -34,9 +34,9 @@ object ActiveGames {
         .map(_ ! GameProcessor.Get(playerId, replyTo))
         .getOrElse(replyTo ! Left(()))
       Behaviors.same
-    case (ctx, JoinExistingGame(gameId, playerId, replyTo)) =>
+    case (ctx, JoinExistingGame(gameId, playerId, remoteClock, replyTo)) =>
       gameProcessor(ctx, gameId).map(
-        _ ! GameProcessor.RunCommand(replyTo, JoinGame(JoiningPlayer(playerId)))
+        _ ! GameProcessor.RunCommand(replyTo, JoinGame(JoiningPlayer(playerId)), remoteClock)
       ).getOrElse(replyTo ! Left(()))
       Behaviors.same
     case (ctx, LoadGame(token, gameId, deckId, server, replyTo)) =>
@@ -56,9 +56,9 @@ object ActiveGames {
       )
       Behaviors.same
 
-    case (ctx, DoGameAction(gameId, action, replyTo)) =>
+    case (ctx, DoGameAction(gameId, action, remoteClock, replyTo)) =>
       gameProcessor(ctx, gameId).map(
-        _ ! GameProcessor.RunCommand(replyTo, action)
+        _ ! GameProcessor.RunCommand(replyTo, action, remoteClock)
       ).getOrElse(replyTo ! Left(()))
       Behaviors.same
   }
@@ -86,7 +86,8 @@ object ActiveGames {
   case class JoinExistingGame(
     gameId: GameId,
     playerId: PlayerId,
-    replyTo: ActorRef[Either[Unit, Event]]
+    remoteClock: RemoteClock,
+    replyTo: ActorRef[Either[Unit, ClockedResponse]]
   ) extends Protocol
 
   case class LoadGame(
@@ -100,7 +101,8 @@ object ActiveGames {
   case class DoGameAction(
                           id: GameId,
                           action: PlayingGameAction,
-                          replyTo: ActorRef[Either[Unit, Event]]
+                          remoteClock: RemoteClock,
+                          replyTo: ActorRef[Either[Unit, ClockedResponse]]
   ) extends Protocol
 
 
@@ -109,7 +111,7 @@ object ActiveGames {
     implicit final class ActiveGamesOps(actorRef: ActorRef[Protocol]) {
       type CreateGameRes = Either[Unit, GameId]
       type GetGameRes = Either[Unit, Game]
-      type ActionRes = Either[Unit, Event]
+      type ActionRes = Either[Unit, ClockedResponse]
 
       def createGame(authToken: String)(implicit
                                         timeout: Timeout, scheduler: Scheduler): Future[CreateGameRes] =
@@ -119,17 +121,17 @@ object ActiveGames {
                                   timeout: Timeout, scheduler: Scheduler): Future[GetGameRes] =
         actorRef ? (GetGameStatus(gameId, playerId, _))
 
-      def joinGame(gameId: GameId, playerId: PlayerId)(implicit
+      def joinGame(gameId: GameId, playerId: PlayerId, remoteClock: RemoteClock)(implicit
                                                        timeout: Timeout, scheduler: Scheduler): Future[ActionRes] =
-        actorRef ? (JoinExistingGame(gameId, playerId, _))
+        actorRef ? (JoinExistingGame(gameId, playerId, remoteClock, _))
 
       def startGame(token: String, gameId: GameId, deckId: DeckId, server: String)(implicit
                     timeout: Timeout, scheduler: Scheduler): Future[Either[Unit, Unit]] =
         actorRef ? (LoadGame(token, gameId, deckId, server, _))
 
-      def action(gameId: GameId, action: PlayingGameAction)
+      def action(gameId: GameId, action: PlayingGameAction, remoteClock: RemoteClock)
                 (implicit timeout: Timeout, scheduler: Scheduler): Future[ActionRes] = {
-        actorRef ? (DoGameAction(gameId, action, _))
+        actorRef ? (DoGameAction(gameId, action, remoteClock, _))
       }
     }
 

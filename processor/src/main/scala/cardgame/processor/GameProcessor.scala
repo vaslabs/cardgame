@@ -5,21 +5,34 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import cardgame.model._
 import cardgame.engine.GameOps._
+import cats.Monoid
 import cats.effect.IO
+import cats.implicits.catsKernelStdMonoidForMap
+import cats.syntax.semigroup._
+import cats.derived._
 object GameProcessor {
 
-  def behavior(game: Game, randomizer: IO[Int]): Behavior[Protocol] = Behaviors.setup {
+  implicit val vectorClockLongMonoid: Monoid[Long] = Monoid.instance(0L, Math.max)
+  implicit val remoteClockMonoid: Monoid[RemoteClock] = MkMonoid[RemoteClock]
+
+  def behavior(game: Game, randomizer: IO[Int], localClock: Long, remoteClock: RemoteClock): Behavior[Protocol] = Behaviors.setup {
     ctx =>
       Behaviors.receiveMessage {
         case c: ReplyCommand =>
+          val newRemoteClock = remoteClock |+| c.remoteClock
+          val updateLocalClock = localClock + 1
           val (gameAffected, event) = game.action(c.action, randomizer)
-          ctx.system.eventStream ! EventStream.Publish(event)
-          c.replyTo ! Right(event)
-          behavior(gameAffected, randomizer)
+          ctx.system.eventStream !
+            EventStream.Publish(ClockedResponse(event, remoteClock, localClock))
+          c.replyTo ! Right(ClockedResponse(event, newRemoteClock, updateLocalClock))
+          behavior(gameAffected, randomizer, updateLocalClock, newRemoteClock)
         case c: Command =>
+          val newRemoteClock = remoteClock |+| c.remoteClock
+          val updateLocalClock = localClock + 1
           val (gameAffected, event) = game.action(c.action, randomizer)
-          ctx.system.eventStream ! EventStream.Publish(event)
-          behavior(gameAffected, randomizer)
+          ctx.system.eventStream !
+            EventStream.Publish(ClockedResponse(event, newRemoteClock, updateLocalClock))
+          behavior(gameAffected, randomizer, updateLocalClock, newRemoteClock)
         case Get(playerId, replyTo) =>
           replyTo ! Right(personalise(playerId, game))
           Behaviors.same
@@ -54,14 +67,20 @@ object GameProcessor {
 
   sealed trait Command extends Protocol {
     def action: Action
+    def remoteClock: RemoteClock
   }
 
   sealed trait ReplyCommand extends Command {
-    def replyTo: ActorRef[Either[Unit, Event]]
+    def replyTo: ActorRef[Either[Unit, ClockedResponse]]
   }
 
-  case class RunCommand(replyTo: ActorRef[Either[Unit, Event]], action: Action) extends ReplyCommand
-  case class FireAndForgetCommand(action: Action) extends Command
+  case class RunCommand(
+       replyTo: ActorRef[Either[Unit, ClockedResponse]],
+       action: Action,
+       remoteClock: RemoteClock
+  ) extends ReplyCommand
+
+  case class FireAndForgetCommand(action: Action, remoteClock: RemoteClock) extends Command
 
   sealed trait Query extends Protocol {
     def replyTo: ActorRef[Either[Unit, Game]]
