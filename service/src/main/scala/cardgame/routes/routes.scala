@@ -10,7 +10,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.util.Timeout
 import cardgame.endpoints._
 import cardgame.events._
-import cardgame.model.PlayerId
+import cardgame.model.{PlayerId, RemoteClock}
 import cardgame.processor.ActiveGames
 import cardgame.processor.ActiveGames.api._
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
@@ -24,12 +24,12 @@ class Routes(activeGames: ActorRef[ActiveGames.Protocol])(implicit scheduler: Sc
   private val PlayerIdMatcher = RemainingPath.map(_.toString).map(PlayerId)
 
   val startingGame =  JoiningGame.joinPlayer.toRoute {
-      case (gameId, playerId) => activeGames.joinGame(gameId, playerId)
+      case (gameId, playerId) => activeGames.joinGame(gameId, playerId, RemoteClock.zero)
     } ~ View.gameStatus.toRoute {
       case (gameId, playerId) => activeGames.getGame(gameId, playerId)
     } ~ Actions.player.toRoute {
         case (gameId, action) =>
-          activeGames.action(gameId, action)
+          activeGames.action(gameId, action.action, RemoteClock.of(action.vectorClock))
     } ~ path("events" / PlayerIdMatcher) {
       (playerId) => get {
           complete(toSse(eventSource(playerId)))
