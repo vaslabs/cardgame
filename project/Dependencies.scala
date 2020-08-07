@@ -26,7 +26,9 @@ object Dependencies {
     object cats {
       val effect = "2.1.2"
       val core = "2.1.0"
+      val kittens = "2.1.0"
     }
+
 
   }
 
@@ -42,6 +44,7 @@ object Dependencies {
     object cats {
       val effect =  "org.typelevel" %% "cats-effect" % Versions.cats.effect
       val core = "org.typelevel" %% "cats-core" % Versions.cats.core
+      val kittens = "org.typelevel" %% "kittens" % Versions.cats.kittens
     }
 
     object circe {
@@ -76,7 +79,7 @@ object Dependencies {
     import Libraries._
     val endpoints = Seq(scalatest.core, tapir.core, tapir.circe) ++ circe.all
 
-    val protocol = Seq(scalatest.core, cats.core, cats.effect)
+    val engine = Seq(scalatest.core, cats.core, cats.effect,  cats.kittens)
 
     val processor = Seq(scalatest.core, akka.testkit, akka.actor, cats.core, cats.effect) ++ circe.all
 

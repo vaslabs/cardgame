@@ -6,7 +6,7 @@ import java.util.UUID
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
-import cardgame.model.{CardId, Deck, DeckId, HiddenCard, StartGame, StartingRules}
+import cardgame.model.{CardId, Deck, DeckId, HiddenCard, RemoteClock, StartGame, StartingRules}
 import cardgame.processor.GameProcessor.FireAndForgetCommand
 import cats.effect.{IO, Resource}
 
@@ -26,7 +26,7 @@ object GameLoader {
       ctx.self ! DeckReady(loadDeck(deckId, server))
       Behaviors.receiveMessage {
         case DeckReady(deck) =>
-          game ! FireAndForgetCommand(StartGame(deck))
+          game ! FireAndForgetCommand(StartGame(deck), RemoteClock.zero)
           replyTo ! Right(())
           Behaviors.stopped
       }

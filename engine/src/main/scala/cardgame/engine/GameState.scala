@@ -11,12 +11,12 @@ case class GameState(gameProgress: LazyList[Action], game: Game, randomizer: IO[
       case _: FinishedGame =>
         None
       case playableGame =>
-        val (game, event) = playableGame.action(action, randomizer)
+        val (game, event) = playableGame.action(action, randomizer, _ => (_,_) => true)(RemoteClock.zero, RemoteClock.zero)
         Some(event -> GameState(gameProgress.drop(1), game, randomizer))
     }
 
 
-  def start =
+  def start: Seq[Event] =
     LazyList.unfold[Event, GameState](this) {
     gameState =>
       gameState.gameProgress.headOption.flatMap { nextCommand =>

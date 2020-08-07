@@ -47,6 +47,8 @@ sealed trait PlayingGameAction extends Action {
   def player: PlayerId
 }
 
+case class ClockedAction(action: PlayingGameAction, vectorClock: Map[String, Long], serverClock: Long)
+
 sealed trait MustHaveTurnAction extends PlayingGameAction
 sealed trait FreeAction extends PlayingGameAction
 
@@ -169,6 +171,7 @@ case class NewDirection(direction: Direction) extends Event
 case class PlayerLeft(player: PlayerId, nextCurrentPlayer: Int) extends Event
 case class CardRecovered(player: PlayerId, card: Card) extends Event
 case class InvalidAction(playerId: Option[PlayerId]) extends Event
+case class OutOfSync(playerId: PlayerId) extends Event
 case class DiceThrow(playerId: PlayerId, dice: List[Die]) extends Event
 case class ShuffledHand(playerId: PlayerId, hand: List[Card]) extends Event
 
@@ -183,3 +186,27 @@ sealed trait GameCompleted extends Event
 
 case class GameStopped() extends GameCompleted
 case class GameFinished(winner: PlayerId) extends GameCompleted
+
+case class ClockedResponse private (event: Event, clock: Map[String, Long], serverClock: Long)
+
+object ClockedResponse {
+  def apply(event: Event, remoteClock: RemoteClock, serverClock: Long): ClockedResponse =
+    ClockedResponse(event, remoteClock.showMap, serverClock)
+}
+
+case class RemoteClock(vectorClock: Map[PlayerId, Long]) {
+  private[model] def showMap: Map[String, Long] = vectorClock.map {
+    case (key, value) => key.value -> value
+  }
+}
+
+object RemoteClock {
+
+  def zero = RemoteClock(Map.empty)
+  def of(clocks: Map[String, Long]) = RemoteClock(
+    clocks.map {
+      case (key, value) => PlayerId(key) -> value
+    }
+  )
+
+}

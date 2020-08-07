@@ -24,7 +24,7 @@ lazy val endpoints =
 
 lazy val engine =
   (project in file("engine"))
-    .settings(libraryDependencies ++= Dependencies.Modules.protocol)
+    .settings(libraryDependencies ++= Dependencies.Modules.engine)
     .settings(noPublishSettings)
     .settings(compilerSettings)
     .dependsOn(model)
