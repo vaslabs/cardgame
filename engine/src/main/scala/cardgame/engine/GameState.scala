@@ -16,7 +16,7 @@ case class GameState(gameProgress: LazyList[Action], game: Game, randomizer: IO[
     }
 
 
-  def start =
+  def start: Seq[Event] =
     LazyList.unfold[Event, GameState](this) {
     gameState =>
       gameState.gameProgress.headOption.flatMap { nextCommand =>

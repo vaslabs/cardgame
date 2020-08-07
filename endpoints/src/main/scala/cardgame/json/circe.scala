@@ -49,7 +49,7 @@ object circe {
   implicit val clockedResponseDecoder: Decoder[ClockedResponse] = Decoder.instance {
     hcursor =>
       (
-        hcursor.downField("vectorClock").as[Map[String, Long]],
+        hcursor.downField("vectorClock").as[Map[String, Long]].orElse(Right(Map.empty[String, Long])),
         hcursor.downField("serverClock").as[Long],
         hcursor.as[Event]
       ).mapN((vectorClocks, serverClock, events) =>
@@ -64,7 +64,10 @@ object circe {
 
   implicit val clockedActionDecoder: Decoder[ClockedAction] = Decoder.instance {
     hcursor =>
-      (hcursor.downField("vectorClock").as[Map[String, Long]], hcursor.as[PlayingGameAction]).mapN(
+      (
+        hcursor.downField("vectorClock").as[Map[String, Long]].orElse(Right(Map.empty[String, Long])),
+        hcursor.as[PlayingGameAction]
+      ).mapN(
         (clock, action) => ClockedAction(action, clock)
       )
   }

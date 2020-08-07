@@ -7,7 +7,7 @@ import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.Source
 import akka.stream.typed.scaladsl.ActorSource
 import cardgame.json.circe._
-import cardgame.model.{Event, GameCompleted, PlayerId}
+import cardgame.model.{ClockedResponse, GameCompleted, PlayerId}
 import cardgame.processor.PlayerEventsReader
 import io.circe.syntax._
 
@@ -15,8 +15,8 @@ import scala.concurrent.duration._
 
 package object events {
 
-  def eventSource(playerId: PlayerId)(implicit actorContext: ActorContext[_]): Source[Event, NotUsed] = {
-    ActorSource.actorRef[Event](
+  def eventSource(playerId: PlayerId)(implicit actorContext: ActorContext[_]): Source[ClockedResponse, NotUsed] = {
+    ActorSource.actorRef[ClockedResponse](
       {
         case _: GameCompleted =>
       },
@@ -32,7 +32,7 @@ package object events {
 
 
 
-  def toSse(source: Source[Event, NotUsed]): Source[ServerSentEvent, NotUsed] =
+  def toSse(source: Source[ClockedResponse, NotUsed]): Source[ServerSentEvent, NotUsed] =
     source.map(
       _.asJson.noSpaces
     ).map(
