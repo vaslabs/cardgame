@@ -47,7 +47,7 @@ sealed trait PlayingGameAction extends Action {
   def player: PlayerId
 }
 
-case class ClockedAction(action: PlayingGameAction, vectorClock: Map[String, Long])
+case class ClockedAction(action: PlayingGameAction, vectorClock: Map[String, Long], serverClock: Long)
 
 sealed trait MustHaveTurnAction extends PlayingGameAction
 sealed trait FreeAction extends PlayingGameAction

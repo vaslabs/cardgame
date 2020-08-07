@@ -43,7 +43,9 @@ object circe {
 
   implicit val clockedResponseEncoder: Encoder[ClockedResponse] = Encoder.instance {
     clockedResponse =>
-      clockedResponse.event.asJson.mapObject(_.add("vectorClock", clockedResponse.clock.asJson))
+      clockedResponse.event.asJson.mapObject(_.add("vectorClock", clockedResponse.clock.asJson)
+          .add("serverClock", clockedResponse.serverClock.asJson)
+      )
   }
 
   implicit val clockedResponseDecoder: Decoder[ClockedResponse] = Decoder.instance {
@@ -59,16 +61,20 @@ object circe {
 
   implicit val clockedActionEncoder: Encoder[ClockedAction] = Encoder.instance {
     clockedAction =>
-      clockedAction.action.asJson.mapObject(_.add("vectorClock", clockedAction.vectorClock.asJson))
+      clockedAction.action.asJson.mapObject(_.add("vectorClock", clockedAction.vectorClock.asJson)
+        .add("serverClock", clockedAction.serverClock.asJson)
+      )
+
   }
 
   implicit val clockedActionDecoder: Decoder[ClockedAction] = Decoder.instance {
     hcursor =>
       (
         hcursor.downField("vectorClock").as[Map[String, Long]].orElse(Right(Map.empty[String, Long])),
+        hcursor.downField("serverClock").as[Long].orElse(Right(0L)),
         hcursor.as[PlayingGameAction]
       ).mapN(
-        (clock, action) => ClockedAction(action, clock)
+        (clock, serverClock, action) => ClockedAction(action, clock, serverClock)
       )
   }
 }
