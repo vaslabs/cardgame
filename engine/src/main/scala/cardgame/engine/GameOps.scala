@@ -39,7 +39,13 @@ object GameOps {
       }
 
 
-    def action(gameAction: Action, randomizer: IO[Int]): (Game, Event) = {
+    def action(
+                gameAction: Action,
+                randomizer: IO[Int],
+                isIdempotent: PlayerId => (RemoteClock, RemoteClock) => Boolean)(
+                  oldClock: RemoteClock,
+                  newClock: RemoteClock
+    ): (Game, Event) = {
       gameAction match {
         case jg: JoinGame =>
           join(jg.player)
@@ -48,12 +54,15 @@ object GameOps {
         case StartGame(deck) =>
           start(deck, randomizer)
         case p: PlayingGameAction =>
-          game match {
-            case sg: StartedGame =>
-              sg.playingAction(p, randomizer)
-            case _ =>
-              game -> InvalidAction(p.player)
-          }
+          if (isIdempotent(p.player)(oldClock, newClock)) {
+            game match {
+              case sg: StartedGame =>
+                sg.playingAction(p, randomizer)
+              case _ =>
+                game -> InvalidAction(p.player)
+            }
+          } else
+            game -> OutOfSync(p.player)
         case _ =>
           game -> InvalidAction()
       }

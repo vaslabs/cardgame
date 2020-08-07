@@ -17,29 +17,40 @@ object GameProcessor {
 
   private final val ATOMIC_RECEIVE_AND_SEND = 2
 
+
   def behavior(game: Game, randomizer: IO[Int], localClock: Long, remoteClock: RemoteClock): Behavior[Protocol] = Behaviors.setup {
     ctx =>
       Behaviors.receiveMessage {
-        case c: ReplyCommand =>
-          val newRemoteClock = remoteClock |+| c.remoteClock
-          val updateLocalClock = localClock + ATOMIC_RECEIVE_AND_SEND
-          val (gameAffected, event) = game.action(c.action, randomizer)
-          ctx.system.eventStream !
-            EventStream.Publish(ClockedResponse(event, newRemoteClock, updateLocalClock))
-          c.replyTo ! Right(ClockedResponse(event, newRemoteClock, updateLocalClock))
-          behavior(gameAffected, randomizer, updateLocalClock, newRemoteClock)
         case c: Command =>
           val newRemoteClock = remoteClock |+| c.remoteClock
           val updateLocalClock = localClock + ATOMIC_RECEIVE_AND_SEND
-          val (gameAffected, event) = game.action(c.action, randomizer)
+
+          val (gameAffected, event) = game.action(c.action, randomizer, checkIdempotency)(remoteClock, c.remoteClock)
           ctx.system.eventStream !
             EventStream.Publish(ClockedResponse(event, newRemoteClock, updateLocalClock))
+          c match {
+            case rc: ReplyCommand =>
+              rc.replyTo ! Right(ClockedResponse(event, newRemoteClock, updateLocalClock))
+
+            case _ =>
+          }
+
           behavior(gameAffected, randomizer, updateLocalClock, newRemoteClock)
         case Get(playerId, replyTo) =>
           replyTo ! Right(personalise(playerId, game))
           Behaviors.same
       }
   }
+
+  def checkIdempotency(requestingEntity: PlayerId)(oldClock: RemoteClock, newClock: RemoteClock): Boolean = {
+    (oldClock.vectorClock.get(requestingEntity), newClock.vectorClock.get(requestingEntity)) match {
+      case (Some(oldClock), Some(newClock)) =>
+        oldClock < newClock
+      case _ =>
+        false
+    }
+  }
+
 
   private def personalise(playerId: PlayerId, game: Game): Game = {
     game match {

@@ -61,6 +61,17 @@ class GameProcessorSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll
 
     }
 
+    "out of sync commands are not processed" in {
+      val gameStateProbe = actorTestKit.createTestProbe[Either[Unit, Game]]("GameState")
+      gameProcessor ! GameProcessor.Get(playerA, gameStateProbe.ref)
+      val gameState = gameStateProbe.expectMessageType[Right[Unit, Game]].value
+      val outdatedClock = Map(playerA.value -> 3L, playerB.value -> 0L)
+      gameProcessor ! RunCommand(playerTestProbe.ref, EndTurn(playerA), RemoteClock.of(outdatedClock))
+      playerTestProbe.expectMessageType[Right[Unit, ClockedResponse]].value.event mustBe OutOfSync(playerA)
+      gameProcessor ! GameProcessor.Get(playerA, gameStateProbe.ref)
+      gameStateProbe.expectMessageType[Right[Unit, Game]].value mustBe gameState
+    }
+
   }
 
   def tick(playerClock: Map[PlayerId, Long], playerId: PlayerId): Map[PlayerId, Long] =

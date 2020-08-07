@@ -171,6 +171,7 @@ case class NewDirection(direction: Direction) extends Event
 case class PlayerLeft(player: PlayerId, nextCurrentPlayer: Int) extends Event
 case class CardRecovered(player: PlayerId, card: Card) extends Event
 case class InvalidAction(playerId: Option[PlayerId]) extends Event
+case class OutOfSync(playerId: PlayerId) extends Event
 case class DiceThrow(playerId: PlayerId, dice: List[Die]) extends Event
 case class ShuffledHand(playerId: PlayerId, hand: List[Card]) extends Event
 
