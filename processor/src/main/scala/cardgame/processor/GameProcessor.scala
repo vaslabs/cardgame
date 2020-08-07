@@ -15,20 +15,22 @@ object GameProcessor {
   implicit val vectorClockLongMonoid: Monoid[Long] = Monoid.instance(0L, Math.max)
   implicit val remoteClockMonoid: Monoid[RemoteClock] = MkMonoid[RemoteClock]
 
+  private final val ATOMIC_RECEIVE_AND_SEND = 2
+
   def behavior(game: Game, randomizer: IO[Int], localClock: Long, remoteClock: RemoteClock): Behavior[Protocol] = Behaviors.setup {
     ctx =>
       Behaviors.receiveMessage {
         case c: ReplyCommand =>
           val newRemoteClock = remoteClock |+| c.remoteClock
-          val updateLocalClock = localClock + 1
+          val updateLocalClock = localClock + ATOMIC_RECEIVE_AND_SEND
           val (gameAffected, event) = game.action(c.action, randomizer)
           ctx.system.eventStream !
-            EventStream.Publish(ClockedResponse(event, remoteClock, localClock))
+            EventStream.Publish(ClockedResponse(event, newRemoteClock, updateLocalClock))
           c.replyTo ! Right(ClockedResponse(event, newRemoteClock, updateLocalClock))
           behavior(gameAffected, randomizer, updateLocalClock, newRemoteClock)
         case c: Command =>
           val newRemoteClock = remoteClock |+| c.remoteClock
-          val updateLocalClock = localClock + 1
+          val updateLocalClock = localClock + ATOMIC_RECEIVE_AND_SEND
           val (gameAffected, event) = game.action(c.action, randomizer)
           ctx.system.eventStream !
             EventStream.Publish(ClockedResponse(event, newRemoteClock, updateLocalClock))
