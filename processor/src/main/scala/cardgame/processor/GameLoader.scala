@@ -9,11 +9,11 @@ import akka.actor.typed.{ActorRef, Behavior}
 import cardgame.model.{CardId, Deck, DeckId, HiddenCard, RemoteClock, StartGame, StartingRules}
 import cardgame.processor.GameProcessor.FireAndForgetCommand
 import cats.effect.{IO, Resource}
+import io.circe.Decoder
 
 import scala.io.Source
 import io.circe.parser._
-import io.circe.generic.auto._
-
+import cats.implicits._
 object GameLoader {
 
   def ephemeralBehaviour(
@@ -87,4 +87,17 @@ object GameLoader {
 
   sealed trait Protocol
   case class DeckReady(deck: Deck) extends Protocol
+
+  implicit val startingRulesDecoder: Decoder[StartingRules] = Decoder.instance {
+    hcursor =>
+      (
+        hcursor.downField("no").as[List[String]].orElse(Right(List.empty)),
+        hcursor.downField("exactlyOne").as[List[String]].orElse(Right(List.empty)),
+        hcursor.downField("hand").as[Int],
+        hcursor.downField("discardAll").as[List[String]].orElse(Right(List.empty))
+      ).mapN(
+        (no, exactlyOne, hand, discardAll) =>
+          StartingRules(no = no, exactlyOne = exactlyOne, hand = hand, discardAll = discardAll)
+      )
+  }
 }

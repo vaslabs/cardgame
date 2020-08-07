@@ -93,10 +93,11 @@ case class CardId(value: UUID)
 case class StartingRules(
   no: List[String],
   exactlyOne: List[String],
-  hand: Int
+  hand: Int,
+  discardAll: List[String]
 )
 object StartingRules {
-  def empty = StartingRules(List.empty, List.empty, 0)
+  def empty = StartingRules(List.empty, List.empty, 0, List.empty)
 }
 case class BorrowedCards(playerId: PlayerId, cards: List[Card]) {
   def take(cardId: CardId): Option[BorrowedCards] = {
