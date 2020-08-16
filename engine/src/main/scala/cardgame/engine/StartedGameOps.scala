@@ -210,6 +210,28 @@ object StartedGameOps {
         )
     }
 
+    private def grabCards(playerId: PlayerId, cardsToGrab: Set[CardId]): (Game, Event) = game match {
+      case sg @ StartedGame(players, _, current, _, _, discardPile) =>
+        ifHasTurn(
+          players,
+          current,
+          playerId,
+          {
+            val playingPlayer = players(current)
+            val cards = discardPile.cards.filter(c => cardsToGrab.contains(c.id))
+            val remainingDiscardPile = discardPile.cards.filterNot(c => cardsToGrab.contains(c.id))
+            if (cards.size == cardsToGrab.size) {
+              val (playerWithUpdatedPile, event) = playingPlayer.gatheringPile.gatherCards(playingPlayer, cards.toSet)
+              sg.copy(players = sg.players.updated(current, playerWithUpdatedPile), discardPile = DiscardPile(remainingDiscardPile)) -> event
+            } else {
+              sg -> InvalidAction(playerId)
+            }
+
+          },
+          sg
+        )
+    }
+
     private def shuffleHand(playerId: PlayerId): (Game, Event) = {
       val player = game.players.find(_.id == playerId)
       player.map {
@@ -258,6 +280,8 @@ object StartedGameOps {
                 this.recoverCard(player, cardId)
               case ThrowDice(p, howMany, sides) =>
                 throwDice(p, howMany, sides, randomizer)
+              case GrabCards(p, cards) =>
+                grabCards(p, cards)
 
               case _: GiveCard =>
                 game -> InvalidAction(playingGameAction.player)
@@ -293,6 +317,16 @@ object StartedGameOps {
     else
       current - 1
 
+
+  implicit final class GatheringPileOps(gatheringPile: GatheringPile) {
+    def gatherCards(player: PlayingPlayer, cards: Set[Card]): (PlayingPlayer, Event) = gatheringPile match {
+      case NoGathering =>
+        player -> InvalidAction(player.id)
+      case HiddenPile(currentCards) =>
+        val playerWithNewPile = player.copy(gatheringPile = HiddenPile(cards.map(c => HiddenCard(c.id, c.image)) ++ currentCards))
+         playerWithNewPile -> AddedToPile(player.id, cards.map(c => VisibleCard(c.id, c.image)))
+    }
+  }
 
 
 }

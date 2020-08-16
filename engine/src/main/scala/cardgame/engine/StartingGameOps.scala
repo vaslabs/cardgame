@@ -22,7 +22,14 @@ object StartingGameOps {
           if (startingGame.playersJoined.nonEmpty) {
             val players = startingGame.playersJoined
             val startingPlayer = Math.abs(randomizer.unsafeRunSync() % players.size)
-            val (startingDeck, gamePlayers, discardCards) = shuffleHand(deck, players.map(j => PlayingPlayer(j.id, List.empty)))
+            val (startingDeck, gamePlayers, discardCards) = shuffleHand(
+              deck,
+              players.map(j =>
+                PlayingPlayer(
+                  j.id, List.empty, gatheringPile(deck.startingRules.gatheringPile)
+                )
+              )
+            )
             val startedGame =
               StartedGame(
                 gamePlayers,
@@ -37,6 +44,11 @@ object StartingGameOps {
             startingGame -> InvalidAction(PlayerId("admin"))
           }
     }
+  }
+
+  private val gatheringPile: Boolean => GatheringPile = {
+    case true => HiddenPile(Set.empty)
+    case _ => NoGathering
   }
 
   def shuffleHand(deck: Deck, players: List[PlayingPlayer]): (Deck, List[PlayingPlayer], List[Card]) = {
@@ -75,7 +87,7 @@ object StartingGameOps {
         case (id, player) =>
           player.reduce[PlayingPlayer] {
             case (p1, p2) =>
-              PlayingPlayer(id, p1.hand ++ p2.hand)
+              PlayingPlayer(id, p1.hand ++ p2.hand, p1.gatheringPile)
           }
       }.toList
     }

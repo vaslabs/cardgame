@@ -31,9 +31,13 @@ sealed trait Player {
 
 case class JoiningPlayer(id: PlayerId) extends Player
 
-case class PlayingPlayer(id: PlayerId, hand: List[Card]) extends Player
+case class PlayingPlayer(id: PlayerId, hand: List[Card], gatheringPile: GatheringPile) extends Player
 
 case class DeadPlayer(id: PlayerId) extends Player
+
+sealed trait GatheringPile
+case object NoGathering extends GatheringPile
+case class HiddenPile(cards: Set[HiddenCard]) extends GatheringPile
 
 sealed trait Action
 
@@ -67,7 +71,9 @@ case class Leave(player: PlayerId) extends MustHaveTurnAction
 case class RecoverCard(player: PlayerId, cardId: CardId) extends MustHaveTurnAction
 case class EndTurn(player: PlayerId) extends MustHaveTurnAction
 case class ThrowDice(player: PlayerId, numberOfDice: Int, sides: Int) extends MustHaveTurnAction
+case class GrabCards(player: PlayerId, cards: Set[CardId]) extends MustHaveTurnAction
 case class ShuffleHand(player: PlayerId) extends FreeAction
+
 
 case object EndGame extends Action
 
@@ -94,10 +100,11 @@ case class StartingRules(
   no: List[String],
   exactlyOne: List[String],
   hand: Int,
-  discardAll: List[String]
+  discardAll: List[String],
+  gatheringPile: Boolean = false
 )
 object StartingRules {
-  def empty = StartingRules(List.empty, List.empty, 0, List.empty)
+  def empty = StartingRules(List.empty, List.empty, 0, List.empty, false)
 }
 case class BorrowedCards(playerId: PlayerId, cards: List[Card]) {
   def take(cardId: CardId): Option[BorrowedCards] = {
@@ -175,6 +182,7 @@ case class InvalidAction(playerId: Option[PlayerId]) extends Event
 case class OutOfSync(playerId: PlayerId) extends Event
 case class DiceThrow(playerId: PlayerId, dice: List[Die]) extends Event
 case class ShuffledHand(playerId: PlayerId, hand: List[Card]) extends Event
+case class AddedToPile(playerId: PlayerId, cards: Set[VisibleCard]) extends Event
 
 case class Die(sides: Int, result: Int)
 object InvalidAction {

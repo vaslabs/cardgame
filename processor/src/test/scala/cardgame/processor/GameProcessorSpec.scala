@@ -100,7 +100,7 @@ object GameProcessorSpec {
     )
   }
 
-  def emptyHandedPlayer(id: String) = PlayingPlayer(PlayerId(id), List.empty)
+  def emptyHandedPlayer(id: String) = PlayingPlayer(PlayerId(id), List.empty, NoGathering)
 
   def localUri(i: Int): URI = URI.create(s"local://card/${i}")
 }

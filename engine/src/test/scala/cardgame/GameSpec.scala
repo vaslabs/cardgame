@@ -111,9 +111,9 @@ class GameSpec extends AnyWordSpec with Matchers {
     val player2Cards = List(aCard, aCard, aCard)
     val player3Cards = List(aCard, aCard)
     val deckCards = List(aCard, aCard, aCard, aCard)
-    val player1 = PlayingPlayer(PlayerId("1"), player1Cards)
-    val player2 = PlayingPlayer(PlayerId("2"), player2Cards)
-    val player3 = PlayingPlayer(PlayerId("3"), player3Cards)
+    val player1 = PlayingPlayer(PlayerId("1"), player1Cards, NoGathering)
+    val player2 = PlayingPlayer(PlayerId("2"), player2Cards, NoGathering)
+    val player3 = PlayingPlayer(PlayerId("3"), player3Cards, NoGathering)
     val players = List(
       player1,
       player2,
@@ -259,7 +259,44 @@ class GameSpec extends AnyWordSpec with Matchers {
 
 
     }
+
+    "gather cards if game allows it" in  {
+
+      val firstCard = game.deck.cards.head
+      val secondCard = game.deck.cards(1)
+      def playGame(game: StartedGame, grabAllowed: Event) = {
+
+
+        val commands = LazyList(
+          DrawCard(player1.id),
+          DrawCard(player1.id),
+          PlayCard(firstCard.id, player1.id),
+          PlayCard(secondCard.id, player1.id),
+          GrabCards(players.head.id, Set(firstCard, secondCard).map(_.id)),
+          GrabCards(players.head.id, Set(firstCard, secondCard).map(_.id))
+        )
+        engine.GameState(commands, game, randomizer).start.toList mustBe List(
+          GotCard(player1.id, firstCard),
+          GotCard(player1.id, secondCard),
+          PlayedCard(toVisibleCard(firstCard), player1.id),
+          PlayedCard(toVisibleCard(secondCard), player1.id),
+          grabAllowed,
+          InvalidAction(player1.id)
+        )
+      }
+
+      playGame(game, InvalidAction(player1.id))
+
+      playGame(
+        game.copy(players = players.map(_.copy(gatheringPile = HiddenPile(Set.empty)))),
+        AddedToPile(player1.id, Set(toVisibleCard(firstCard), toVisibleCard(secondCard)))
+      )
+
+
+    }
   }
+
+  def toVisibleCard(card: Card) = VisibleCard(card.id, card.image)
 
   private def aCard = HiddenCard(
     CardId(UUID.randomUUID()),
@@ -268,7 +305,8 @@ class GameSpec extends AnyWordSpec with Matchers {
 }
 
 /*
-List(PlayerJoined(PlayerId(123)), PlayerJoined(PlayerId(124)), GameStarted(PlayerId(123)), BorrowedCard(HiddenCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3),PlayerId(123)), BorrowedCard(HiddenCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1),PlayerId(123)), BorrowedCard(HiddenCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2),PlayerId(123)), ReturnedCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),0), ReturnedCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),0), ReturnedCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),0), GotCard(PlayerId(123),HiddenCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1)), NextPlayer(PlayerId(124)), GotCard(PlayerId(124),HiddenCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2)), NextPlayer(PlayerId(123)), PlayedCard(VisibleCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1),PlayerId(123)), NextPlayer(PlayerId(124)), GotCard(PlayerId(124),HiddenCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3)), PlayedCard(VisibleCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2),PlayerId(124)), PlayedCard(VisibleCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3),PlayerId(124)), PlayerLeft(PlayerId(124),0), GameFinished(PlayerId(123)))
-List(PlayerJoined(PlayerId(123)), PlayerJoined(PlayerId(124)), GameStarted(PlayerId(123)), BorrowedCard(HiddenCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1),PlayerId(123)), BorrowedCard(HiddenCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2),PlayerId(123)), BorrowedCard(HiddenCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3),PlayerId(123)), ReturnedCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),0), ReturnedCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),0), ReturnedCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),0), GotCard(PlayerId(123),HiddenCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1)), NextPlayer(PlayerId(124)), GotCard(PlayerId(124),HiddenCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2)), NextPlayer(PlayerId(123)), PlayedCard(VisibleCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1),PlayerId(123)), NextPlayer(PlayerId(124)), GotCard(PlayerId(124),HiddenCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3)), PlayedCard(VisibleCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2),PlayerId(124)), PlayedCard(VisibleCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3),PlayerId(124)), PlayerLeft(PlayerId(124),0), GameFinished(PlayerId(123))) (GameSpec.scala:105)
+
+List(GotCard(PlayerId(1),HiddenCard(CardId(36c866fc-ed63-4fe3-9ecc-ef98940fa885),http://localhost:8080/card57)), GotCard(PlayerId(1),HiddenCard(CardId(48fa42c4-0b75-45a5-9163-5fd89aa88ac6),http://localhost:8080/card19)), PlayedCard(VisibleCard(CardId(36c866fc-ed63-4fe3-9ecc-ef98940fa885),http://localhost:8080/card57),PlayerId(1)), PlayedCard(VisibleCard(CardId(48fa42c4-0b75-45a5-9163-5fd89aa88ac6),http://localhost:8080/card19),PlayerId(1)), InvalidAction(Some(PlayerId(1))))
+List(GotCard(PlayerId(1),HiddenCard(CardId(36c866fc-ed63-4fe3-9ecc-ef98940fa885),http://localhost:8080/card57)), GotCard(PlayerId(1),HiddenCard(CardId(48fa42c4-0b75-45a5-9163-5fd89aa88ac6),http://localhost:8080/card19)), PlayedCard(VisibleCard(CardId(36c866fc-ed63-4fe3-9ecc-ef98940fa885),http://localhost:8080/card57),PlayerId(1)), PlayedCard(VisibleCard(CardId(48fa42c4-0b75-45a5-9163-5fd89aa88ac6),http://localhost:8080/card19),PlayerId(1)), AddedToPile(PlayerId(1),Set(VisibleCard(CardId(36c866fc-ed63-4fe3-9ecc-ef98940fa885),http://localhost:8080/card57), VisibleCard(CardId(48fa42c4-0b75-45a5-9163-5fd89aa88ac6),http://localhost:8080/card19)))) (GameSpec.scala:277)
 
  */
