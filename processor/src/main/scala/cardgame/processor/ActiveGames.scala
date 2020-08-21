@@ -61,6 +61,8 @@ object ActiveGames {
         _ ! GameProcessor.RunCommand(replyTo, action, remoteClock)
       ).getOrElse(replyTo ! Left(()))
       Behaviors.same
+    case (_, Ignore) =>
+      Behaviors.same
   }
 
   private def gameProcessor(actorContext: ActorContext[_], gameId: GameId): Option[ActorRef[GameProcessor.Protocol]] =
@@ -71,6 +73,9 @@ object ActiveGames {
   sealed trait AdminControl extends Protocol {
     def authToken: String
   }
+
+
+  object Ignore extends Protocol
 
   case class CreateGame(
            replyTo: ActorRef[Either[Unit, GameId]],
