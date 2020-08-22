@@ -34,9 +34,7 @@ object Guardian {
     implicit val materializer = Materializer(ctx)
     implicit val system = ctx.system.toClassic
 
-    val blackhole = ctx.spawn(Behaviors.ignore[Any], "Blackhole")
-
-    val startingGameRoute = new Routes(activeGames, blackhole)(ctx.system.scheduler, ctx)
+    val startingGameRoute = new Routes(activeGames)(ctx.system.scheduler)
     val bindingFuture = Http().bindAndHandle(
       startingGameRoute.main, "0.0.0.0", 8080)
 

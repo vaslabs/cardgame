@@ -2,7 +2,6 @@ package cardgame.routes
 
 import java.io.File
 
-import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.{ActorRef, Scheduler}
 import akka.http.scaladsl.model.MediaTypes
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
@@ -15,8 +14,8 @@ import cardgame.events._
 import cardgame.json.circe._
 import cardgame.model.{ClockedAction, GameId, PlayerId, RemoteClock}
 import cardgame.processor.ActiveGames
-import cardgame.processor.ActiveGames.{DoGameAction, Ignore}
 import cardgame.processor.ActiveGames.api._
+import cardgame.processor.ActiveGames.{DoGameAction, Ignore}
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import io.circe.parser._
 import io.circe.syntax._
@@ -24,7 +23,7 @@ import sttp.tapir.server.akkahttp._
 
 import scala.concurrent.duration._
 
-class Routes(activeGames: ActorRef[ActiveGames.Protocol], blackhole: ActorRef[Any])(implicit scheduler: Scheduler, actorContext: ActorContext[_]) {
+class Routes(activeGames: ActorRef[ActiveGames.Protocol])(implicit scheduler: Scheduler) {
 
   implicit val timeout = Timeout(5 seconds)
   private val PlayerIdMatcher = RemainingPath.map(_.toString).map(PlayerId)
@@ -32,8 +31,8 @@ class Routes(activeGames: ActorRef[ActiveGames.Protocol], blackhole: ActorRef[An
 
   val websocketRoute = get {
     path("live" / "actions" / PathGameId / PlayerIdMatcher) {
-      (gameId, playerId) =>
-        handleWebSocketMessages(gameActionsFlow(gameId, playerId))
+        (gameId, playerId) =>
+          handleWebSocketMessages(gameActionsFlow(gameId, playerId))
     }
   }
 
@@ -41,9 +40,6 @@ class Routes(activeGames: ActorRef[ActiveGames.Protocol], blackhole: ActorRef[An
       case (gameId, playerId) => activeGames.joinGame(gameId, playerId, RemoteClock.zero)
     } ~ View.gameStatus.toRoute {
       case (gameId, playerId) => activeGames.getGame(gameId, playerId)
-    } ~ Actions.player.toRoute {
-        case (gameId, action) =>
-          activeGames.action(gameId, action.action, RemoteClock.of(action.vectorClock))
     } ~ get {
     path("img" / RemainingPath) {
       imageFile =>
@@ -56,9 +52,9 @@ class Routes(activeGames: ActorRef[ActiveGames.Protocol], blackhole: ActorRef[An
 
 
   def gameActionsFlow(gameId: GameId, playerId: PlayerId): Flow[Message, Message, Any] = {
-    val source = eventSource(playerId).map(_.asJson.noSpaces).map(TextMessage.apply)
+    val source = eventSource(playerId, activeGames).map(_.asJson.noSpaces).map(TextMessage.apply)
     val sink: Sink[Message, Any] = ActorSink.actorRef[ActiveGames.Protocol](activeGames, Ignore, _ => Ignore).contramap[ClockedAction](
-      ca => DoGameAction(gameId, ca.action, RemoteClock.of(ca.vectorClock), blackhole)
+      ca => DoGameAction(gameId, ca.action, RemoteClock.of(ca.vectorClock))
     ).contramap[Message](extractClockedAction)
 
     Flow.fromSinkAndSource(sink, source)
