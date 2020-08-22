@@ -64,7 +64,14 @@ object ActiveGames {
     case (_, Ignore) =>
       Behaviors.same
     case (ctx, StreamEventsFor(playerId, streamingActor)) =>
-      ctx.spawnAnonymous(PlayerEventsReader.behavior(playerId, streamingActor))
+      val eventStreamerName = s"event-reader-${playerId.value}"
+      val streamer = ctx.child(eventStreamerName).map(_.unsafeUpcast[PlayerEventsReader.Protocol]).getOrElse(
+        ctx.spawn(PlayerEventsReader.behavior(playerId, streamingActor), eventStreamerName)
+      )
+
+      streamer ! PlayerEventsReader.UpdateStreamer(streamingActor)
+
+
       Behaviors.same
   }
 
