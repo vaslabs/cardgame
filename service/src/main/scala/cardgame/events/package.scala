@@ -1,21 +1,21 @@
 package cardgame
 
 import akka.NotUsed
-import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.ActorRef
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.Source
 import akka.stream.typed.scaladsl.ActorSource
 import cardgame.json.circe._
 import cardgame.model.{ClockedResponse, GameCompleted, PlayerId}
-import cardgame.processor.PlayerEventsReader
+import cardgame.processor.ActiveGames
 import io.circe.syntax._
 
 import scala.concurrent.duration._
 
 package object events {
 
-  def eventSource(playerId: PlayerId)(implicit actorContext: ActorContext[_]): Source[ClockedResponse, NotUsed] = {
+  def eventSource(playerId: PlayerId, activeGame: ActorRef[ActiveGames.Protocol]): Source[ClockedResponse, NotUsed] = {
     ActorSource.actorRef[ClockedResponse](
       {
         case _: GameCompleted =>
@@ -25,7 +25,7 @@ package object events {
       OverflowStrategy.dropBuffer
     ).mapMaterializedValue {
       streamingActor =>
-          actorContext.spawnAnonymous(PlayerEventsReader.behavior(playerId, streamingActor))
+          activeGame ! ActiveGames.StreamEventsFor(playerId, streamingActor)
           NotUsed
     }
   }

@@ -6,7 +6,8 @@ import java.util.UUID
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.actor.typed.eventstream.EventStream
 import cardgame.model._
-import cardgame.processor.GameProcessor.RunCommand
+import cardgame.processor.GameProcessor.FireAndForgetCommand
+import cardgame.processor.PlayerEventsReader.UserResponse
 import cats.effect.IO
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.must.Matchers
@@ -28,36 +29,26 @@ class GameProcessorSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll
     val playerB = PlayerId("b")
     val playerAClock = Map(playerA -> 0L, playerB -> 0L)
 
-    val playerTestProbe = actorTestKit.createTestProbe[Either[Unit, ClockedResponse]]("Player")
-
-    val streamingPlayer = actorTestKit.createTestProbe[ClockedResponse]("StreamingPlayer")
+    val streamingPlayer = actorTestKit.createTestProbe[PlayerEventsReader.Protocol]("StreamingPlayer")
 
     actorTestKit.system.eventStream ! EventStream.Subscribe(streamingPlayer.ref)
 
     val gameProcessor = actorTestKit.spawn(GameProcessor.behavior(startedGame, randomizer, 0L, RemoteClock.zero))
 
     "update the local clock and the remote clock on serving a player command" in {
-      gameProcessor ! RunCommand(playerTestProbe.ref, DrawCard(playerA), RemoteClock(tick(playerAClock, playerA)))
+      gameProcessor ! FireAndForgetCommand(DrawCard(playerA), RemoteClock(tick(playerAClock, playerA)))
 
-      val streamingClockedResponse = streamingPlayer.expectMessageType[ClockedResponse]
+      val streamingClockedResponse = streamingPlayer.expectMessageType[UserResponse].clockedResponse
       streamingClockedResponse.clock mustBe Map(playerA.value -> 1, playerB.value -> 0)
       streamingClockedResponse.serverClock mustBe 2
-      val clockedResponse = playerTestProbe.expectMessageType[Right[Unit, ClockedResponse]]
-      clockedResponse.value.serverClock mustBe 2
-      clockedResponse.value.clock mustBe Map(playerA.value -> 1, playerB.value -> 0)
 
       val newPlayerAClock = tick(tick(playerAClock, playerA), playerA)
 
-      gameProcessor ! RunCommand(playerTestProbe.ref, EndTurn(playerA), RemoteClock(tick(newPlayerAClock, playerA)))
+      gameProcessor ! FireAndForgetCommand(EndTurn(playerA), RemoteClock(tick(newPlayerAClock, playerA)))
 
-      val endTurnStreamingClockedResponse = streamingPlayer.expectMessageType[ClockedResponse]
+      val endTurnStreamingClockedResponse = streamingPlayer.expectMessageType[UserResponse].clockedResponse
       endTurnStreamingClockedResponse.clock mustBe Map(playerA.value -> 3, playerB.value -> 0)
       endTurnStreamingClockedResponse.serverClock mustBe 4
-
-      val endTurnResponse = playerTestProbe.expectMessageType[Right[Unit, ClockedResponse]]
-
-      endTurnResponse.value.serverClock mustBe 4
-      endTurnResponse.value.clock mustBe Map(playerA.value -> 3, playerB.value -> 0)
 
     }
 
@@ -66,8 +57,8 @@ class GameProcessorSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll
       gameProcessor ! GameProcessor.Get(playerA, gameStateProbe.ref)
       val gameState = gameStateProbe.expectMessageType[Right[Unit, Game]].value
       val outdatedClock = Map(playerA.value -> 3L, playerB.value -> 0L)
-      gameProcessor ! RunCommand(playerTestProbe.ref, EndTurn(playerA), RemoteClock.of(outdatedClock))
-      playerTestProbe.expectMessageType[Right[Unit, ClockedResponse]].value.event mustBe OutOfSync(playerA)
+      gameProcessor ! FireAndForgetCommand(EndTurn(playerA), RemoteClock.of(outdatedClock))
+      streamingPlayer.expectMessageType[UserResponse].clockedResponse.event mustBe OutOfSync(playerA)
       gameProcessor ! GameProcessor.Get(playerA, gameStateProbe.ref)
       gameStateProbe.expectMessageType[Right[Unit, Game]].value mustBe gameState
     }

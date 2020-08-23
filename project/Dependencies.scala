@@ -20,7 +20,7 @@ object Dependencies {
     object akka {
       val cors = "0.4.2"
 
-      val main = "2.6.4"
+      val main = "2.6.8"
     }
 
     object cats {

@@ -56,10 +56,22 @@ object ActiveGames {
       )
       Behaviors.same
 
-    case (ctx, DoGameAction(gameId, action, remoteClock, replyTo)) =>
-      gameProcessor(ctx, gameId).map(
-        _ ! GameProcessor.RunCommand(replyTo, action, remoteClock)
-      ).getOrElse(replyTo ! Left(()))
+    case (ctx, DoGameAction(gameId, action, remoteClock)) =>
+      gameProcessor(ctx, gameId).foreach(
+        _ ! GameProcessor.FireAndForgetCommand(action, remoteClock)
+      )
+      Behaviors.same
+    case (_, Ignore) =>
+      Behaviors.same
+    case (ctx, StreamEventsFor(playerId, streamingActor)) =>
+      val eventStreamerName = s"event-reader-${playerId.value}"
+      val streamer = ctx.child(eventStreamerName).map(_.unsafeUpcast[PlayerEventsReader.Protocol]).getOrElse(
+        ctx.spawn(PlayerEventsReader.behavior(playerId, streamingActor), eventStreamerName)
+      )
+
+      streamer ! PlayerEventsReader.UpdateStreamer(streamingActor)
+
+
       Behaviors.same
   }
 
@@ -71,6 +83,9 @@ object ActiveGames {
   sealed trait AdminControl extends Protocol {
     def authToken: String
   }
+
+
+  object Ignore extends Protocol
 
   case class CreateGame(
            replyTo: ActorRef[Either[Unit, GameId]],
@@ -101,10 +116,11 @@ object ActiveGames {
   case class DoGameAction(
                           id: GameId,
                           action: PlayingGameAction,
-                          remoteClock: RemoteClock,
-                          replyTo: ActorRef[Either[Unit, ClockedResponse]]
+                          remoteClock: RemoteClock
   ) extends Protocol
 
+
+  case class StreamEventsFor(playerId: PlayerId, streamingActor: ActorRef[ClockedResponse]) extends Protocol
 
   object api {
 
@@ -129,11 +145,12 @@ object ActiveGames {
                     timeout: Timeout, scheduler: Scheduler): Future[Either[Unit, Unit]] =
         actorRef ? (LoadGame(token, gameId, deckId, server, _))
 
-      def action(gameId: GameId, action: PlayingGameAction, remoteClock: RemoteClock)
-                (implicit timeout: Timeout, scheduler: Scheduler): Future[ActionRes] = {
-        actorRef ? (DoGameAction(gameId, action, remoteClock, _))
+      def action(gameId: GameId, action: PlayingGameAction, remoteClock: RemoteClock): Unit = {
+        actorRef ! (DoGameAction(gameId, action, remoteClock))
       }
     }
 
   }
+
+
 }

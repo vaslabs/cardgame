@@ -7,16 +7,18 @@ import cardgame.model.{BorrowedCard, CardRecovered, ClockedResponse, GotCard, Hi
 
 object PlayerEventsReader {
 
-  def behavior(playerId: PlayerId, replyTo: ActorRef[ClockedResponse]): Behavior[ClockedResponse] = Behaviors.setup {
+  def behavior(playerId: PlayerId, replyTo: ActorRef[ClockedResponse]): Behavior[Protocol] = Behaviors.setup {
     ctx =>
       ctx.system.eventStream ! EventStream.Subscribe(ctx.self)
       readingEvents(playerId, replyTo)
   }
 
-  private def readingEvents(id: PlayerId, replyTo: ActorRef[ClockedResponse]): Behavior[ClockedResponse] = Behaviors.receiveMessage {
-    case msg =>
+  private def readingEvents(id: PlayerId, replyTo: ActorRef[ClockedResponse]): Behavior[Protocol] = Behaviors.receiveMessage {
+    case UserResponse(msg) =>
       replyTo ! personalise(msg, id)
       Behaviors.same
+    case UpdateStreamer(streamer) =>
+      readingEvents(id, streamer)
   }
 
   private def personalise(clockedResponse: ClockedResponse, playerId: PlayerId): ClockedResponse = {
@@ -39,6 +41,10 @@ object PlayerEventsReader {
     clockedResponse.copy(event = event)
 
   }
+
+  sealed trait Protocol
+  case class UserResponse(clockedResponse: ClockedResponse) extends Protocol
+  case class UpdateStreamer(streamer: ActorRef[ClockedResponse]) extends Protocol
 
 
 }
