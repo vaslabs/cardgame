@@ -26,7 +26,7 @@ object StartingGameOps {
               deck,
               players.map(j =>
                 PlayingPlayer(
-                  j.id, List.empty, gatheringPile(deck.startingRules.gatheringPile)
+                  j.id, List.empty, gatheringPile(deck.startingRules.gatheringPile), 0
                 )
               )
             )
@@ -87,7 +87,7 @@ object StartingGameOps {
         case (id, player) =>
           player.reduce[PlayingPlayer] {
             case (p1, p2) =>
-              PlayingPlayer(id, p1.hand ++ p2.hand, p1.gatheringPile)
+              PlayingPlayer(id, p1.hand ++ p2.hand, p1.gatheringPile, p1.points)
           }
       }.toList
     }

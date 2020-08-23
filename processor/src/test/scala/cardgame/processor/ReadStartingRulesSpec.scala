@@ -1,6 +1,6 @@
 package cardgame.processor
 
-import cardgame.model.StartingRules
+import cardgame.model.{MostCards, NoBonus, PointCounting, StartingRules}
 import cardgame.processor.config.json._
 import io.circe.Json
 import io.circe.literal.JsonStringContext
@@ -8,7 +8,7 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 class ReadStartingRulesSpec extends AnyWordSpec with Matchers {
 
-  "parseable configs" must {
+  "parseable starting rules config" must {
     "accept no gathering pile with single deck" in {
       singleDeckNoGatheringPileRules.as[StartingRules] mustBe
         Right(StartingRules(List.empty, List("card1"), 1, List.empty, false))
@@ -21,6 +21,21 @@ class ReadStartingRulesSpec extends AnyWordSpec with Matchers {
     "accept gathering pile with single deck and discardAll rule" in {
       singleDeckWithGatheringPileRulesDiscardAll.as[StartingRules] mustBe
         Right(StartingRules(List.empty, List("card1"), 1, List("card2"), true))
+    }
+  }
+
+  "parseable point counting config" must {
+    "accept points per card and bonus" in {
+      pointsConfig.as[PointCounting] mustBe Right(PointCounting(
+        Map("J_h" -> 1, "J_s" -> 1, "10_h" -> 3),
+        MostCards(3)
+      ))
+    }
+    "accept points per card without bonus" in {
+      noBonusPointsConfig.as[PointCounting] mustBe Right(PointCounting(
+        Map("J_h" -> 1, "J_s" -> 1, "10_h" -> 3),
+        NoBonus
+      ))
     }
   }
 
@@ -51,4 +66,27 @@ class ReadStartingRulesSpec extends AnyWordSpec with Matchers {
           "hand": 1
       }
       """
+
+  def pointsConfig: Json =
+    json"""{
+      "cards": {
+        "J_h": 1,
+        "J_s": 1,
+        "10_h": 3
+      },
+      "bonus": {
+          "mostCards": 3
+      }
+    }
+    """
+
+  def noBonusPointsConfig: Json =
+    json"""{
+      "cards": {
+        "J_h": 1,
+        "J_s": 1,
+        "10_h": 3
+      }
+    }
+    """
 }

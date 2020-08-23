@@ -31,7 +31,7 @@ sealed trait Player {
 
 case class JoiningPlayer(id: PlayerId) extends Player
 
-case class PlayingPlayer(id: PlayerId, hand: List[Card], gatheringPile: GatheringPile) extends Player
+case class PlayingPlayer(id: PlayerId, hand: List[Card], gatheringPile: GatheringPile, points: Long) extends Player
 
 case class DeadPlayer(id: PlayerId) extends Player
 
@@ -106,6 +106,16 @@ case class StartingRules(
 object StartingRules {
   def empty = StartingRules(List.empty, List.empty, 0, List.empty, false)
 }
+
+case class PointCounting(
+  cards: Map[String, Int],
+  bonus: BonusRule = NoBonus
+)
+
+sealed trait BonusRule
+case class MostCards(points: Int) extends BonusRule
+case object NoBonus extends BonusRule
+
 case class BorrowedCards(playerId: PlayerId, cards: List[Card]) {
   def take(cardId: CardId): Option[BorrowedCards] = {
     if (cards.isEmpty)

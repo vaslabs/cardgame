@@ -111,9 +111,9 @@ class GameSpec extends AnyWordSpec with Matchers {
     val player2Cards = List(aCard, aCard, aCard)
     val player3Cards = List(aCard, aCard)
     val deckCards = List(aCard, aCard, aCard, aCard)
-    val player1 = PlayingPlayer(PlayerId("1"), player1Cards, NoGathering)
-    val player2 = PlayingPlayer(PlayerId("2"), player2Cards, NoGathering)
-    val player3 = PlayingPlayer(PlayerId("3"), player3Cards, NoGathering)
+    val player1 = PlayingPlayer(PlayerId("1"), player1Cards, NoGathering, 0)
+    val player2 = PlayingPlayer(PlayerId("2"), player2Cards, NoGathering, 0)
+    val player3 = PlayingPlayer(PlayerId("3"), player3Cards, NoGathering, 0)
     val players = List(
       player1,
       player2,
