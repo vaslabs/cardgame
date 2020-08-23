@@ -50,7 +50,9 @@ object Dependencies {
     object circe {
       val all = Seq("io.circe" %% "circe-core",
       "io.circe" %% "circe-generic",
+      "io.circe" %% "circe-generic-extras",
       "io.circe" %% "circe-parser").map(_ % Versions.circe.core)
+      val literal = "io.circe" %% "circe-literal" % Versions.circe.core % Test
     }
     object Logback {
         val essentials = Seq(
@@ -59,7 +61,7 @@ object Dependencies {
           "ch.qos.logback" % "logback-access").map(_ % Versions.logbackClassic)
     }
     object scalatest {
-      val core =  "org.scalatest" %% "scalatest" % Versions.scalatest.core % "test"
+      val core =  "org.scalatest" %% "scalatest" % Versions.scalatest.core % Test
     }
 
     object tapir {
@@ -81,7 +83,7 @@ object Dependencies {
 
     val engine = Seq(scalatest.core, cats.core, cats.effect,  cats.kittens)
 
-    val processor = Seq(scalatest.core, akka.testkit, akka.actor, cats.core, cats.effect) ++ circe.all
+    val processor = Seq(scalatest.core, akka.testkit, akka.actor, cats.core, cats.effect, circe.literal) ++ circe.all
 
     val service = Seq(tapir.akka, scalatest.core, akka.cors, akka.streams, akka.testkit, cats.effect) ++ tapir.docs ++
       Logback.essentials

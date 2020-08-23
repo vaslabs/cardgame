@@ -100,7 +100,7 @@ case class StartingRules(
   no: List[String],
   exactlyOne: List[String],
   hand: Int,
-  discardAll: List[String],
+  discardAll: List[String] = List.empty,
   gatheringPile: Boolean = false
 )
 object StartingRules {

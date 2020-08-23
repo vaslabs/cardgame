@@ -246,7 +246,7 @@ class GameSpec extends AnyWordSpec with Matchers {
     "players can request dice throw" in {
 
       val commands = LazyList(
-        ThrowDice(players(0).id, 2, 6)
+        ThrowDice(players.head.id, 2, 6)
       )
       val atomicInteger = new AtomicInteger(-1)
       val dieRandomizer = IO {
@@ -254,7 +254,7 @@ class GameSpec extends AnyWordSpec with Matchers {
       }
 
       engine.GameState(commands, game, dieRandomizer).start.toList mustBe List(
-        DiceThrow(players(0).id, List(Die(6, 1), Die(6, 2)))
+        DiceThrow(players.head.id, List(Die(6, 1), Die(6, 2)))
       )
 
 
@@ -303,10 +303,3 @@ class GameSpec extends AnyWordSpec with Matchers {
     URI.create(s"http://localhost:8080/card${Random.nextInt(100)}")
   )
 }
-
-/*
-
-List(GotCard(PlayerId(1),HiddenCard(CardId(36c866fc-ed63-4fe3-9ecc-ef98940fa885),http://localhost:8080/card57)), GotCard(PlayerId(1),HiddenCard(CardId(48fa42c4-0b75-45a5-9163-5fd89aa88ac6),http://localhost:8080/card19)), PlayedCard(VisibleCard(CardId(36c866fc-ed63-4fe3-9ecc-ef98940fa885),http://localhost:8080/card57),PlayerId(1)), PlayedCard(VisibleCard(CardId(48fa42c4-0b75-45a5-9163-5fd89aa88ac6),http://localhost:8080/card19),PlayerId(1)), InvalidAction(Some(PlayerId(1))))
-List(GotCard(PlayerId(1),HiddenCard(CardId(36c866fc-ed63-4fe3-9ecc-ef98940fa885),http://localhost:8080/card57)), GotCard(PlayerId(1),HiddenCard(CardId(48fa42c4-0b75-45a5-9163-5fd89aa88ac6),http://localhost:8080/card19)), PlayedCard(VisibleCard(CardId(36c866fc-ed63-4fe3-9ecc-ef98940fa885),http://localhost:8080/card57),PlayerId(1)), PlayedCard(VisibleCard(CardId(48fa42c4-0b75-45a5-9163-5fd89aa88ac6),http://localhost:8080/card19),PlayerId(1)), AddedToPile(PlayerId(1),Set(VisibleCard(CardId(36c866fc-ed63-4fe3-9ecc-ef98940fa885),http://localhost:8080/card57), VisibleCard(CardId(48fa42c4-0b75-45a5-9163-5fd89aa88ac6),http://localhost:8080/card19)))) (GameSpec.scala:277)
-
- */
