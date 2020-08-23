@@ -16,7 +16,8 @@ case class StartedGame(
                         nextPlayer: Int,
                         direction: Direction,
                         deadPlayers: List[DeadPlayer],
-                        discardPile: DiscardPile
+                        discardPile: DiscardPile,
+                        pointRules: Option[PointCounting] = None
                       ) extends Game
 
 sealed trait FinishedGame extends Game
@@ -35,9 +36,19 @@ case class PlayingPlayer(id: PlayerId, hand: List[Card], gatheringPile: Gatherin
 
 case class DeadPlayer(id: PlayerId) extends Player
 
-sealed trait GatheringPile
-case object NoGathering extends GatheringPile
-case class HiddenPile(cards: Set[HiddenCard]) extends GatheringPile
+sealed trait GatheringPile {
+  def empty: GatheringPile
+
+  def cards: Set[HiddenCard]
+}
+case object NoGathering extends GatheringPile {
+  def cards: Set[HiddenCard] = Set.empty
+
+  override def empty: GatheringPile = this
+}
+case class HiddenPile(cards: Set[HiddenCard]) extends GatheringPile {
+  override def empty: GatheringPile = HiddenPile(Set.empty)
+}
 
 sealed trait Action
 
@@ -73,7 +84,7 @@ case class EndTurn(player: PlayerId) extends MustHaveTurnAction
 case class ThrowDice(player: PlayerId, numberOfDice: Int, sides: Int) extends MustHaveTurnAction
 case class GrabCards(player: PlayerId, cards: Set[CardId]) extends MustHaveTurnAction
 case class ShuffleHand(player: PlayerId) extends FreeAction
-
+case class RestartGame(player: PlayerId) extends MustHaveTurnAction
 
 case object EndGame extends Action
 
@@ -90,6 +101,17 @@ case object AntiClockwise extends Direction {
 sealed trait Card {
   def id: CardId
   def image: URI
+  def cardName: String = {
+    val `/` = image.getPath.lastIndexOf("/")
+    val `.jpg` = image.getPath.lastIndexOf(".jpg")
+    (`/`, `.jpg`) match {
+      case (i, j) if (i >= 0 && j >= 0) =>
+        val conversion = image.getPath.substring(`/` + 1, `.jpg`)
+        conversion
+      case _ =>
+        image.getPath
+    }
+  }
 }
 case class HiddenCard(id: CardId, image: URI) extends Card
 case class VisibleCard(id: CardId, image: URI) extends Card
@@ -193,7 +215,7 @@ case class OutOfSync(playerId: PlayerId) extends Event
 case class DiceThrow(playerId: PlayerId, dice: List[Die]) extends Event
 case class ShuffledHand(playerId: PlayerId, hand: List[Card]) extends Event
 case class AddedToPile(playerId: PlayerId, cards: Set[VisibleCard]) extends Event
-
+case class GameRestarted(startedGame: StartedGame) extends Event
 case class Die(sides: Int, result: Int)
 object InvalidAction {
   def apply(): InvalidAction = InvalidAction(None)

@@ -256,8 +256,6 @@ class GameSpec extends AnyWordSpec with Matchers {
       engine.GameState(commands, game, dieRandomizer).start.toList mustBe List(
         DiceThrow(players.head.id, List(Die(6, 1), Die(6, 2)))
       )
-
-
     }
 
     "gather cards if game allows it" in  {
@@ -291,8 +289,36 @@ class GameSpec extends AnyWordSpec with Matchers {
         game.copy(players = players.map(_.copy(gatheringPile = HiddenPile(Set.empty)))),
         AddedToPile(player1.id, Set(toVisibleCard(firstCard), toVisibleCard(secondCard)))
       )
+    }
 
+    "when game ends, we can reshuffle all the cards back by counting points" in {
+      val points = Map(
+        deckCards.head.cardName -> 1,
+        deckCards(1).cardName -> 3,
+        deckCards(2).cardName -> 4,
+        deckCards.last.cardName -> 2
+      )
+      lazy val playersWithGatheredCards = List(
+        PlayingPlayer(PlayerId("a"), List.empty, HiddenPile(deckCards.take(2).toSet), 0),
+        PlayingPlayer(PlayerId("b"), List.empty, HiddenPile(deckCards.takeRight(2).toSet), 0)
+      )
+      val game = StartedGame(
+        playersWithGatheredCards,
+        Deck(List.empty, None, StartingRules(no = List.empty, exactlyOne = List.empty, hand = 1)),
+        1,
+        Clockwise,
+        List.empty,
+        DiscardPile.empty,
+        Some(PointCounting(points, NoBonus))
+      )
 
+      val restartEvent = engine.GameState(LazyList(RestartGame(PlayerId("b"))), game, IO(Random.nextInt())).start.head.asInstanceOf[GameRestarted]
+
+      restartEvent.startedGame.players.map(_.gatheringPile) mustBe List(HiddenPile(Set.empty), HiddenPile(Set.empty))
+      restartEvent.startedGame.players.map(_.hand.size) mustBe List(1, 1)
+      val newDeckCards = deckCards.filterNot(restartEvent.startedGame.players.flatMap(_.hand).contains)
+      restartEvent.startedGame.deck.cards must contain theSameElementsAs newDeckCards
+      restartEvent.startedGame.players.map(_.points) mustBe List(4, 6)
     }
   }
 

@@ -61,7 +61,7 @@ object StartedGameOps {
 
 
     private def leave(playerId: PlayerId): (Game, Event) = game match {
-      case sg@StartedGame(players, _, currentPlayer, direction, _, _) =>
+      case sg@StartedGame(players, _, currentPlayer, direction, _, _, _) =>
         val killingPlayer = players(currentPlayer)
         if (players.size > 1 && killingPlayer.hand.isEmpty) {
           val remainingPlayers = players.filterNot(_.id == playerId)
@@ -89,7 +89,7 @@ object StartedGameOps {
     }
 
     private def play(playerId: PlayerId, cardId: CardId): (Game, Event) = game match {
-      case sg@StartedGame(players, _, currentPlayer, _, _, discardPile) =>
+      case sg@StartedGame(players, _, currentPlayer, _, _, discardPile, _) =>
         val player = players.find(_.id == playerId).get
         val visibleCardOpt: Option[VisibleCard] = player.hand.find(_.id == cardId).map {
           card => VisibleCard(cardId, card.image)
@@ -130,7 +130,7 @@ object StartedGameOps {
 
 
     def putCardBack(playerId: PlayerId, card: Card, index: Int): (Game, Event) = game match {
-      case sg @ StartedGame(players, deck, currentPlayer, _, _, _) =>
+      case sg @ StartedGame(players, deck, currentPlayer, _, _, _, _) =>
         ifHasTurn(players, currentPlayer, playerId,
           {
             val player = players(currentPlayer)
@@ -150,7 +150,7 @@ object StartedGameOps {
     }
 
     def steal(player: PlayerId, from: PlayerId, cardIndex: Int): (Game, Event) = game match {
-      case sg@StartedGame(players, _, currentPlayer, _, _, _) =>
+      case sg@StartedGame(players, _, currentPlayer, _, _, _, _) =>
         ifHasTurn(players, currentPlayer, player,
           {
             val playerTo = players.indexWhere(_.id == player)
@@ -199,8 +199,51 @@ object StartedGameOps {
       game
     )
 
+    def restartGame(player: PlayerId): (Game, Event) = {
+      if (!validateEndGame(game))
+        game -> InvalidAction(player)
+      else {
+        val players = countPoints()
+        val deckCards = game.players.flatMap(_.gatheringPile.cards.toList) ++ game.discardPile.cards
+        val (deck, playersWithCards, discardedCards) = ShuffleGameAlgorithm.shuffleHand(game.deck.copy(cards = deckCards), players)
+
+        val startedGame = StartedGame(
+          playersWithCards,
+          deck,
+          shift(playersWithCards.size, game.nextPlayer, game.direction),
+          game.direction,
+          List.empty,
+          DiscardPile(discardedCards),
+          game.pointRules
+        )
+
+        startedGame -> GameRestarted(startedGame)
+
+      }
+    }
+
+    private def countPoints(): List[PlayingPlayer] = {
+      game.players.map {
+        player =>
+          player.copy(
+            points = player.points + countPoints(player.gatheringPile, game.pointRules),
+            gatheringPile = player.gatheringPile.empty
+          )
+      }
+    }
+
+    private def countPoints(gatheringPile: GatheringPile, pointRules: Option[PointCounting]): Int = (gatheringPile, pointRules) match {
+      case (HiddenPile(cards), Some(pointCounting)) =>
+        cards.map(c => c.cardName).map(pointCounting.cards.getOrElse(_, 0)).sum
+      case _ => 0
+
+    }
+
+    private def validateEndGame(game: StartedGame): Boolean =
+      game.deck.cards.isEmpty && game.deck.borrowed.isEmpty && game.players.forall(_.hand.isEmpty)
+
     private def throwDice(playerId: PlayerId, howMany: Int, sides: Int, randomizer: IO[Int]): (Game, Event) = game match {
-      case sg @ StartedGame(players, _, current, _, _, _) =>
+      case sg @ StartedGame(players, _, current, _, _, _, _) =>
         ifHasTurn(players, current, playerId, {
           val dice = (1 to howMany).map {
             _ => Math.abs(randomizer.unsafeRunSync())
@@ -211,7 +254,7 @@ object StartedGameOps {
     }
 
     private def grabCards(playerId: PlayerId, cardsToGrab: Set[CardId]): (Game, Event) = game match {
-      case sg @ StartedGame(players, _, current, _, _, discardPile) =>
+      case sg @ StartedGame(players, _, current, _, _, discardPile, _) =>
         ifHasTurn(
           players,
           current,
@@ -282,6 +325,8 @@ object StartedGameOps {
                 throwDice(p, howMany, sides, randomizer)
               case GrabCards(p, cards) =>
                 grabCards(p, cards)
+              case RestartGame(player) =>
+                this.restartGame(player)
 
               case _: GiveCard =>
                 game -> InvalidAction(playingGameAction.player)
