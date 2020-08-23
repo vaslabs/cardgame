@@ -5,6 +5,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import cardgame.model._
 import cardgame.engine.GameOps._
+import cardgame.processor.PlayerEventsReader.UserResponse
 import cats.Monoid
 import cats.effect.IO
 import cats.implicits.catsKernelStdMonoidForMap
@@ -27,7 +28,7 @@ object GameProcessor {
 
           val (gameAffected, event) = game.action(c.action, randomizer, checkIdempotency)(remoteClock, c.remoteClock)
           ctx.system.eventStream !
-            EventStream.Publish(ClockedResponse(event, newRemoteClock, updateLocalClock))
+            EventStream.Publish(UserResponse(ClockedResponse(event, newRemoteClock, updateLocalClock)))
           c match {
             case rc: ReplyCommand =>
               rc.replyTo ! Right(ClockedResponse(event, newRemoteClock, updateLocalClock))
