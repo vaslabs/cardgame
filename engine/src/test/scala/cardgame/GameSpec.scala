@@ -26,7 +26,6 @@ class GameSpec extends AnyWordSpec with Matchers {
   val randomizer: IO[Int] = IO.pure(0)
 
 
-
   def initialState(commands: LazyList[Action]) = GameState(
     commands, StartingGame(List.empty), randomizer
   )
@@ -38,7 +37,10 @@ class GameSpec extends AnyWordSpec with Matchers {
         HiddenCard(CardId(UUID.randomUUID()), URI.create("http://localhost:8080/card1")),
         HiddenCard(CardId(UUID.randomUUID()), URI.create("http://localhost:8080/card2")),
         HiddenCard(CardId(UUID.randomUUID()), URI.create("http://localhost:8080/card3"))
-      )
+      ),
+      None,
+      StartingRules.empty,
+      None
     )
 
     "accept players" in {
@@ -119,7 +121,7 @@ class GameSpec extends AnyWordSpec with Matchers {
       player2,
       player3
     )
-    val game = StartedGame(players, Deck(deckCards), 0, Clockwise, List.empty, DiscardPile.empty)
+    val game = StartedGame(players, Deck(deckCards, None, StartingRules.empty, None), 0, Clockwise, List.empty, DiscardPile.empty)
 
     "change the direction" in {
       val cardToPlay = player1.hand(1)
@@ -304,12 +306,13 @@ class GameSpec extends AnyWordSpec with Matchers {
       )
       val game = StartedGame(
         playersWithGatheredCards,
-        Deck(List.empty, None, StartingRules(no = List.empty, exactlyOne = List.empty, hand = 1)),
+        Deck(
+          List.empty, None, StartingRules(no = List.empty, exactlyOne = List.empty, hand = 1), Some(PointCounting(points, NoBonus))
+        ),
         1,
         Clockwise,
         List.empty,
-        DiscardPile.empty,
-        Some(PointCounting(points, NoBonus))
+        DiscardPile.empty
       )
 
       val restartEvent = engine.GameState(LazyList(RestartGame(PlayerId("b"))), game, IO(Random.nextInt())).start.head.asInstanceOf[GameRestarted]

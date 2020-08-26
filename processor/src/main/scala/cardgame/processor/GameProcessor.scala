@@ -55,7 +55,7 @@ object GameProcessor {
 
   private def personalise(playerId: PlayerId, game: Game): Game = {
     game match {
-      case g @ StartedGame(players, deck, _, _, _, _, _) =>
+      case g @ StartedGame(players, deck, _, _, _, _) =>
         players.indexWhere(_.id == playerId) match {
           case n if n >= 0 =>
             g.copy(players.updated(n, turnVisible(players(n))), turnVisible(deck, playerId))

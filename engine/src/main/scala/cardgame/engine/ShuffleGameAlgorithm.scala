@@ -63,7 +63,7 @@ object ShuffleGameAlgorithm {
 
 
     (
-      Deck(Random.shuffle(excludedCards ++ remainingCards), None, deck.startingRules),
+      Deck(Random.shuffle(excludedCards ++ remainingCards), None, deck.startingRules, deck.pointRules),
       playersWithHand,
       discardCards.map(c => VisibleCard(c.id, c.image))
     )

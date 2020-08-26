@@ -12,7 +12,7 @@ object StartedGameOps {
     private def draw(playerId: PlayerId): (Game, Event) = {
       val player = game.players.find(_.id == playerId).get
       val draw = game.deck.cards.take(1)
-      val newDeck = Deck(game.deck.cards.drop(1))
+      val newDeck = game.deck.copy(cards = game.deck.cards.drop(1))
       val newHand = player.copy(hand = player.hand ++ draw)
       game.copy(players = game.players.updated(game.nextPlayer, newHand), deck = newDeck) ->
         draw.headOption.map(c => GotCard(playerId, c))
@@ -21,7 +21,7 @@ object StartedGameOps {
 
     private def shuffle(playerId: PlayerId): (Game, Event) =
       if (game.deck.borrowed.isEmpty) {
-        val newDeck = Deck(Random.shuffle(game.deck.cards))
+        val newDeck = game.deck.copy(cards = Random.shuffle(game.deck.cards))
         game.copy(deck = newDeck) -> DeckShuffled(newDeck)
       } else
         game -> InvalidAction(playerId)
@@ -30,7 +30,7 @@ object StartedGameOps {
     private def bottomDraw(playerId: PlayerId): (Game, Event) = {
       val player = game.players.find(_.id == playerId).get
       val draw = game.deck.cards.takeRight(1)
-      val newDeck = Deck(game.deck.cards.dropRight(1))
+      val newDeck = game.deck.copy(cards = game.deck.cards.dropRight(1))
       val newHand = player.copy(hand = player.hand ++ draw)
 
       game.copy(
@@ -61,7 +61,7 @@ object StartedGameOps {
 
 
     private def leave(playerId: PlayerId): (Game, Event) = game match {
-      case sg@StartedGame(players, _, currentPlayer, direction, _, _, _) =>
+      case sg@StartedGame(players, _, currentPlayer, direction, _, _) =>
         val killingPlayer = players(currentPlayer)
         if (players.size > 1 && killingPlayer.hand.isEmpty) {
           val remainingPlayers = players.filterNot(_.id == playerId)
@@ -89,7 +89,7 @@ object StartedGameOps {
     }
 
     private def play(playerId: PlayerId, cardId: CardId): (Game, Event) = game match {
-      case sg@StartedGame(players, _, currentPlayer, _, _, discardPile, _) =>
+      case sg@StartedGame(players, _, currentPlayer, _, _, discardPile) =>
         val player = players.find(_.id == playerId).get
         val visibleCardOpt: Option[VisibleCard] = player.hand.find(_.id == cardId).map {
           card => VisibleCard(cardId, card.image)
@@ -130,7 +130,7 @@ object StartedGameOps {
 
 
     def putCardBack(playerId: PlayerId, card: Card, index: Int): (Game, Event) = game match {
-      case sg @ StartedGame(players, deck, currentPlayer, _, _, _, _) =>
+      case sg @ StartedGame(players, deck, currentPlayer, _, _, _) =>
         ifHasTurn(players, currentPlayer, playerId,
           {
             val player = players(currentPlayer)
@@ -150,7 +150,7 @@ object StartedGameOps {
     }
 
     def steal(player: PlayerId, from: PlayerId, cardIndex: Int): (Game, Event) = game match {
-      case sg@StartedGame(players, _, currentPlayer, _, _, _, _) =>
+      case sg@StartedGame(players, _, currentPlayer, _, _, _) =>
         ifHasTurn(players, currentPlayer, player,
           {
             val playerTo = players.indexWhere(_.id == player)
@@ -213,8 +213,7 @@ object StartedGameOps {
           shift(playersWithCards.size, game.nextPlayer, game.direction),
           game.direction,
           List.empty,
-          DiscardPile(discardedCards),
-          game.pointRules
+          DiscardPile(discardedCards)
         )
 
         startedGame -> GameRestarted(startedGame)
@@ -226,7 +225,7 @@ object StartedGameOps {
       game.players.map {
         player =>
           player.copy(
-            points = player.points + countPoints(player.gatheringPile, game.pointRules),
+            points = player.points + countPoints(player.gatheringPile, game.deck.pointRules),
             gatheringPile = player.gatheringPile.empty
           )
       }
@@ -243,7 +242,7 @@ object StartedGameOps {
       game.deck.cards.isEmpty && game.deck.borrowed.isEmpty && game.players.forall(_.hand.isEmpty)
 
     private def throwDice(playerId: PlayerId, howMany: Int, sides: Int, randomizer: IO[Int]): (Game, Event) = game match {
-      case sg @ StartedGame(players, _, current, _, _, _, _) =>
+      case sg @ StartedGame(players, _, current, _, _, _) =>
         ifHasTurn(players, current, playerId, {
           val dice = (1 to howMany).map {
             _ => Math.abs(randomizer.unsafeRunSync())
@@ -254,7 +253,7 @@ object StartedGameOps {
     }
 
     private def grabCards(playerId: PlayerId, cardsToGrab: Set[CardId]): (Game, Event) = game match {
-      case sg @ StartedGame(players, _, current, _, _, discardPile, _) =>
+      case sg @ StartedGame(players, _, current, _, _, discardPile) =>
         ifHasTurn(
           players,
           current,

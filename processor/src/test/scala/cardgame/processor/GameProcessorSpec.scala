@@ -87,7 +87,8 @@ object GameProcessorSpec {
     Deck(
       (0 to size).map(n => HiddenCard(CardId(UUID.randomUUID()), localUri(n))).toList,
       None,
-      StartingRules(List.empty, List.empty, 0, List.empty)
+      StartingRules(List.empty, List.empty, 0, List.empty),
+      None
     )
   }
 

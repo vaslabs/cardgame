@@ -16,8 +16,7 @@ case class StartedGame(
                         nextPlayer: Int,
                         direction: Direction,
                         deadPlayers: List[DeadPlayer],
-                        discardPile: DiscardPile,
-                        pointRules: Option[PointCounting] = None
+                        discardPile: DiscardPile
                       ) extends Game
 
 sealed trait FinishedGame extends Game
@@ -149,12 +148,12 @@ case class BorrowedCards(playerId: PlayerId, cards: List[Card]) {
     copy(playerId, cards :+ card)
 }
 
-case class Deck(cards: List[Card], borrowed: Option[BorrowedCards], startingRules: StartingRules) {
+case class Deck(cards: List[Card], borrowed: Option[BorrowedCards], startingRules: StartingRules, pointRules: Option[PointCounting]) {
   def putBack(card: Card, index: Int): Deck =
     if (index >= cards.size)
-      Deck(cards :+ card)
+      this.copy(cards = cards :+ card)
     else if (index >= 0) {
-      Deck(cards.patch(index, List(card), 0))
+      this.copy(cards = cards.patch(index, List(card), 0))
     } else
       this
 
@@ -181,14 +180,6 @@ case class Deck(cards: List[Card], borrowed: Option[BorrowedCards], startingRule
       c => copy(c +: cards, borrowed.flatMap(_.take(c.id)))
     )
   }
-}
-
-object Deck {
-  def apply(cards: List[Card]): Deck = Deck(cards, None, StartingRules.empty)
-
-  def apply(cards: List[Card], borrowed: Option[BorrowedCards]): Deck = Deck(cards, borrowed, StartingRules.empty)
-
-
 }
 
 case class DiscardPile(cards: List[Card])
