@@ -221,19 +221,31 @@ object StartedGameOps {
       }
     }
 
+    def bonus(player: PlayingPlayer, players: List[PlayingPlayer], bonus: BonusRule) =
+      bonus match {
+        case MostCards(points) =>
+          players.find(
+            p => p.id != player.id && p.gatheringPile.cards.size >= p.gatheringPile.cards.size
+          ).map(_ => 0).getOrElse(points)
+        case NoBonus =>
+          0
+      }
+
+
     private def countPoints(): List[PlayingPlayer] = {
       game.players.map {
         player =>
           player.copy(
-            points = player.points + countPoints(player.gatheringPile, game.deck.pointRules),
+            points = player.points + countPoints(player.gatheringPile) +
+              bonus(player, game.players, game.deck.pointRules.map(_.bonus).getOrElse(NoBonus)),
             gatheringPile = player.gatheringPile.empty
           )
       }
     }
 
-    private def countPoints(gatheringPile: GatheringPile, pointRules: Option[PointCounting]): Int = (gatheringPile, pointRules) match {
+    private def countPoints(gatheringPile: GatheringPile): Int = (gatheringPile, game.deck.pointRules) match {
       case (HiddenPile(cards), Some(pointCounting)) =>
-        cards.map(c => c.cardName).map(pointCounting.cards.getOrElse(_, 0)).sum
+        cards.toList.map(c => c.cardName).map(cardName => pointCounting.cards.getOrElse(cardName, 0)).sum
       case _ => 0
 
     }

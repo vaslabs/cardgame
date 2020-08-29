@@ -296,18 +296,26 @@ class GameSpec extends AnyWordSpec with Matchers {
     "when game ends, we can reshuffle all the cards back by counting points" in {
       val points = Map(
         deckCards.head.cardName -> 1,
-        deckCards(1).cardName -> 3,
-        deckCards(2).cardName -> 4,
+        deckCards(1).cardName -> 1,
+        deckCards(2).cardName -> 2,
         deckCards.last.cardName -> 2
       )
+      def otherCards = (0 to 10).map(_ => aCard).filterNot(c => points.keySet.contains(c.cardName)).toSet
+      val player1OtherCards = otherCards
+      val player2OtherCards = otherCards
       lazy val playersWithGatheredCards = List(
-        PlayingPlayer(PlayerId("a"), List.empty, HiddenPile(deckCards.take(2).toSet), 0),
-        PlayingPlayer(PlayerId("b"), List.empty, HiddenPile(deckCards.takeRight(2).toSet), 0)
+        PlayingPlayer(PlayerId("a"), List.empty, HiddenPile(deckCards.take(2).toSet ++ player1OtherCards), 0),
+        PlayingPlayer(PlayerId("b"), List.empty, HiddenPile(deckCards.takeRight(2).toSet ++ player2OtherCards), 0)
       )
       val game = StartedGame(
         playersWithGatheredCards,
         Deck(
-          List.empty, None, StartingRules(no = List.empty, exactlyOne = List.empty, hand = 1), Some(PointCounting(points, NoBonus))
+          List.empty,
+          None,
+          StartingRules(
+            no = List.empty, exactlyOne = List.empty, hand = 1
+          ),
+          Some(PointCounting(points, MostCards(3)))
         ),
         1,
         Clockwise,
@@ -319,9 +327,10 @@ class GameSpec extends AnyWordSpec with Matchers {
 
       restartEvent.startedGame.players.map(_.gatheringPile) mustBe List(HiddenPile(Set.empty), HiddenPile(Set.empty))
       restartEvent.startedGame.players.map(_.hand.size) mustBe List(1, 1)
-      val newDeckCards = deckCards.filterNot(restartEvent.startedGame.players.flatMap(_.hand).contains)
+      val newDeckCards = (deckCards ++ player1OtherCards.toList ++ player2OtherCards.toList)
+          .filterNot(restartEvent.startedGame.players.flatMap(_.hand).contains)
       restartEvent.startedGame.deck.cards must contain theSameElementsAs newDeckCards
-      restartEvent.startedGame.players.map(_.points) mustBe List(4, 6)
+      restartEvent.startedGame.players.map(_.points) mustBe List(2, 4)
     }
   }
 
@@ -329,6 +338,6 @@ class GameSpec extends AnyWordSpec with Matchers {
 
   private def aCard = HiddenCard(
     CardId(UUID.randomUUID()),
-    URI.create(s"http://localhost:8080/card${Random.nextInt(100)}")
+    URI.create(s"http://localhost:8080/card${Random.nextInt(100)}.jpg")
   )
 }
