@@ -323,6 +323,14 @@ class GameSpec extends AnyWordSpec with Matchers {
         DiscardPile.empty
       )
 
+      val player1ExtraPoints = if (player1OtherCards.size > player2OtherCards.size)
+        3
+      else
+        0
+      val player2ExtraPoints = if (player2OtherCards.size > player1OtherCards.size)
+        3
+      else
+        0
       val restartEvent = engine.GameState(LazyList(RestartGame(PlayerId("b"))), game, IO(Random.nextInt())).start.head.asInstanceOf[GameRestarted]
 
       restartEvent.startedGame.players.map(_.gatheringPile) mustBe List(HiddenPile(Set.empty), HiddenPile(Set.empty))
@@ -330,7 +338,7 @@ class GameSpec extends AnyWordSpec with Matchers {
       val newDeckCards = (deckCards ++ player1OtherCards.toList ++ player2OtherCards.toList)
           .filterNot(restartEvent.startedGame.players.flatMap(_.hand).contains)
       restartEvent.startedGame.deck.cards must contain theSameElementsAs newDeckCards
-      restartEvent.startedGame.players.map(_.points) mustBe List(2, 4)
+      restartEvent.startedGame.players.map(_.points) mustBe List(2 + player1ExtraPoints, 4 + player2ExtraPoints)
     }
   }
 

@@ -225,7 +225,7 @@ object StartedGameOps {
       bonus match {
         case MostCards(points) =>
           players.find(
-            p => p.id != player.id && p.gatheringPile.cards.size >= p.gatheringPile.cards.size
+            p => p.id != player.id && p.gatheringPile.cards.size >= player.gatheringPile.cards.size
           ).map(_ => 0).getOrElse(points)
         case NoBonus =>
           0
