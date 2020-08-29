@@ -31,9 +31,23 @@ sealed trait Player {
 
 case class JoiningPlayer(id: PlayerId) extends Player
 
-case class PlayingPlayer(id: PlayerId, hand: List[Card]) extends Player
+case class PlayingPlayer(id: PlayerId, hand: List[Card], gatheringPile: GatheringPile, points: Long) extends Player
 
 case class DeadPlayer(id: PlayerId) extends Player
+
+sealed trait GatheringPile {
+  def empty: GatheringPile
+
+  def cards: Set[HiddenCard]
+}
+case object NoGathering extends GatheringPile {
+  def cards: Set[HiddenCard] = Set.empty
+
+  override def empty: GatheringPile = this
+}
+case class HiddenPile(cards: Set[HiddenCard]) extends GatheringPile {
+  override def empty: GatheringPile = HiddenPile(Set.empty)
+}
 
 sealed trait Action
 
@@ -67,7 +81,9 @@ case class Leave(player: PlayerId) extends MustHaveTurnAction
 case class RecoverCard(player: PlayerId, cardId: CardId) extends MustHaveTurnAction
 case class EndTurn(player: PlayerId) extends MustHaveTurnAction
 case class ThrowDice(player: PlayerId, numberOfDice: Int, sides: Int) extends MustHaveTurnAction
+case class GrabCards(player: PlayerId, cards: Set[CardId]) extends MustHaveTurnAction
 case class ShuffleHand(player: PlayerId) extends FreeAction
+case class RestartGame(player: PlayerId) extends MustHaveTurnAction
 
 case object EndGame extends Action
 
@@ -84,6 +100,17 @@ case object AntiClockwise extends Direction {
 sealed trait Card {
   def id: CardId
   def image: URI
+  def cardName: String = {
+    val `/` = image.getPath.lastIndexOf("/")
+    val `.jpg` = image.getPath.lastIndexOf(".jpg")
+    (`/`, `.jpg`) match {
+      case (i, j) if (i >= 0 && j >= 0) =>
+        val conversion = image.getPath.substring(`/` + 1, `.jpg`)
+        conversion
+      case _ =>
+        image.getPath
+    }
+  }
 }
 case class HiddenCard(id: CardId, image: URI) extends Card
 case class VisibleCard(id: CardId, image: URI) extends Card
@@ -94,11 +121,22 @@ case class StartingRules(
   no: List[String],
   exactlyOne: List[String],
   hand: Int,
-  discardAll: List[String]
+  discardAll: List[String] = List.empty,
+  gatheringPile: Boolean = false
 )
 object StartingRules {
-  def empty = StartingRules(List.empty, List.empty, 0, List.empty)
+  def empty = StartingRules(List.empty, List.empty, 0, List.empty, false)
 }
+
+case class PointCounting(
+  cards: Map[String, Int],
+  bonus: BonusRule = NoBonus
+)
+
+sealed trait BonusRule
+case class MostCards(points: Int) extends BonusRule
+case object NoBonus extends BonusRule
+
 case class BorrowedCards(playerId: PlayerId, cards: List[Card]) {
   def take(cardId: CardId): Option[BorrowedCards] = {
     if (cards.isEmpty)
@@ -110,12 +148,12 @@ case class BorrowedCards(playerId: PlayerId, cards: List[Card]) {
     copy(playerId, cards :+ card)
 }
 
-case class Deck(cards: List[Card], borrowed: Option[BorrowedCards], startingRules: StartingRules) {
+case class Deck(cards: List[Card], borrowed: Option[BorrowedCards], startingRules: StartingRules, pointRules: Option[PointCounting]) {
   def putBack(card: Card, index: Int): Deck =
     if (index >= cards.size)
-      Deck(cards :+ card)
+      this.copy(cards = cards :+ card)
     else if (index >= 0) {
-      Deck(cards.patch(index, List(card), 0))
+      this.copy(cards = cards.patch(index, List(card), 0))
     } else
       this
 
@@ -144,14 +182,6 @@ case class Deck(cards: List[Card], borrowed: Option[BorrowedCards], startingRule
   }
 }
 
-object Deck {
-  def apply(cards: List[Card]): Deck = Deck(cards, None, StartingRules.empty)
-
-  def apply(cards: List[Card], borrowed: Option[BorrowedCards]): Deck = Deck(cards, borrowed, StartingRules.empty)
-
-
-}
-
 case class DiscardPile(cards: List[Card])
 object DiscardPile {
   def empty = DiscardPile(List.empty)
@@ -175,7 +205,8 @@ case class InvalidAction(playerId: Option[PlayerId]) extends Event
 case class OutOfSync(playerId: PlayerId) extends Event
 case class DiceThrow(playerId: PlayerId, dice: List[Die]) extends Event
 case class ShuffledHand(playerId: PlayerId, hand: List[Card]) extends Event
-
+case class AddedToPile(playerId: PlayerId, cards: Set[VisibleCard]) extends Event
+case class GameRestarted(startedGame: StartedGame) extends Event
 case class Die(sides: Int, result: Int)
 object InvalidAction {
   def apply(): InvalidAction = InvalidAction(None)

@@ -87,11 +87,12 @@ object GameProcessorSpec {
     Deck(
       (0 to size).map(n => HiddenCard(CardId(UUID.randomUUID()), localUri(n))).toList,
       None,
-      StartingRules(List.empty, List.empty, 0, List.empty)
+      StartingRules(List.empty, List.empty, 0, List.empty),
+      None
     )
   }
 
-  def emptyHandedPlayer(id: String) = PlayingPlayer(PlayerId(id), List.empty)
+  def emptyHandedPlayer(id: String) = PlayingPlayer(PlayerId(id), List.empty, NoGathering, 0)
 
-  def localUri(i: Int): URI = URI.create(s"local://card/${i}")
+  def localUri(i: Int): URI = URI.create(s"local://card/${i}.jpg")
 }

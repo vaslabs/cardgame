@@ -26,7 +26,6 @@ class GameSpec extends AnyWordSpec with Matchers {
   val randomizer: IO[Int] = IO.pure(0)
 
 
-
   def initialState(commands: LazyList[Action]) = GameState(
     commands, StartingGame(List.empty), randomizer
   )
@@ -38,7 +37,10 @@ class GameSpec extends AnyWordSpec with Matchers {
         HiddenCard(CardId(UUID.randomUUID()), URI.create("http://localhost:8080/card1")),
         HiddenCard(CardId(UUID.randomUUID()), URI.create("http://localhost:8080/card2")),
         HiddenCard(CardId(UUID.randomUUID()), URI.create("http://localhost:8080/card3"))
-      )
+      ),
+      None,
+      StartingRules.empty,
+      None
     )
 
     "accept players" in {
@@ -111,15 +113,15 @@ class GameSpec extends AnyWordSpec with Matchers {
     val player2Cards = List(aCard, aCard, aCard)
     val player3Cards = List(aCard, aCard)
     val deckCards = List(aCard, aCard, aCard, aCard)
-    val player1 = PlayingPlayer(PlayerId("1"), player1Cards)
-    val player2 = PlayingPlayer(PlayerId("2"), player2Cards)
-    val player3 = PlayingPlayer(PlayerId("3"), player3Cards)
+    val player1 = PlayingPlayer(PlayerId("1"), player1Cards, NoGathering, 0)
+    val player2 = PlayingPlayer(PlayerId("2"), player2Cards, NoGathering, 0)
+    val player3 = PlayingPlayer(PlayerId("3"), player3Cards, NoGathering, 0)
     val players = List(
       player1,
       player2,
       player3
     )
-    val game = StartedGame(players, Deck(deckCards), 0, Clockwise, List.empty, DiscardPile.empty)
+    val game = StartedGame(players, Deck(deckCards, None, StartingRules.empty, None), 0, Clockwise, List.empty, DiscardPile.empty)
 
     "change the direction" in {
       val cardToPlay = player1.hand(1)
@@ -246,7 +248,7 @@ class GameSpec extends AnyWordSpec with Matchers {
     "players can request dice throw" in {
 
       val commands = LazyList(
-        ThrowDice(players(0).id, 2, 6)
+        ThrowDice(players.head.id, 2, 6)
       )
       val atomicInteger = new AtomicInteger(-1)
       val dieRandomizer = IO {
@@ -254,21 +256,96 @@ class GameSpec extends AnyWordSpec with Matchers {
       }
 
       engine.GameState(commands, game, dieRandomizer).start.toList mustBe List(
-        DiceThrow(players(0).id, List(Die(6, 1), Die(6, 2)))
+        DiceThrow(players.head.id, List(Die(6, 1), Die(6, 2)))
+      )
+    }
+
+    "gather cards if game allows it" in  {
+
+      val firstCard = game.deck.cards.head
+      val secondCard = game.deck.cards(1)
+      def playGame(game: StartedGame, grabAllowed: Event) = {
+
+
+        val commands = LazyList(
+          DrawCard(player1.id),
+          DrawCard(player1.id),
+          PlayCard(firstCard.id, player1.id),
+          PlayCard(secondCard.id, player1.id),
+          GrabCards(players.head.id, Set(firstCard, secondCard).map(_.id)),
+          GrabCards(players.head.id, Set(firstCard, secondCard).map(_.id))
+        )
+        engine.GameState(commands, game, randomizer).start.toList mustBe List(
+          GotCard(player1.id, firstCard),
+          GotCard(player1.id, secondCard),
+          PlayedCard(toVisibleCard(firstCard), player1.id),
+          PlayedCard(toVisibleCard(secondCard), player1.id),
+          grabAllowed,
+          InvalidAction(player1.id)
+        )
+      }
+
+      playGame(game, InvalidAction(player1.id))
+
+      playGame(
+        game.copy(players = players.map(_.copy(gatheringPile = HiddenPile(Set.empty)))),
+        AddedToPile(player1.id, Set(toVisibleCard(firstCard), toVisibleCard(secondCard)))
+      )
+    }
+
+    "when game ends, we can reshuffle all the cards back by counting points" in {
+      val points = Map(
+        deckCards.head.cardName -> 1,
+        deckCards(1).cardName -> 1,
+        deckCards(2).cardName -> 2,
+        deckCards.last.cardName -> 2
+      )
+      def otherCards = (0 to 10).map(_ => aCard).filterNot(c => points.keySet.contains(c.cardName)).toSet
+      val player1OtherCards = otherCards
+      val player2OtherCards = otherCards
+      lazy val playersWithGatheredCards = List(
+        PlayingPlayer(PlayerId("a"), List.empty, HiddenPile(deckCards.take(2).toSet ++ player1OtherCards), 0),
+        PlayingPlayer(PlayerId("b"), List.empty, HiddenPile(deckCards.takeRight(2).toSet ++ player2OtherCards), 0)
+      )
+      val game = StartedGame(
+        playersWithGatheredCards,
+        Deck(
+          List.empty,
+          None,
+          StartingRules(
+            no = List.empty, exactlyOne = List.empty, hand = 1
+          ),
+          Some(PointCounting(points, MostCards(3)))
+        ),
+        1,
+        Clockwise,
+        List.empty,
+        DiscardPile.empty
       )
 
+      val player1ExtraPoints = if (player1OtherCards.size > player2OtherCards.size)
+        3
+      else
+        0
+      val player2ExtraPoints = if (player2OtherCards.size > player1OtherCards.size)
+        3
+      else
+        0
+      val restartEvent = engine.GameState(LazyList(RestartGame(PlayerId("b"))), game, IO(Random.nextInt())).start.head.asInstanceOf[GameRestarted]
 
+      restartEvent.startedGame.players.map(_.gatheringPile) mustBe List(HiddenPile(Set.empty), HiddenPile(Set.empty))
+      restartEvent.startedGame.players.map(_.hand.size) mustBe List(1, 1)
+      val newDeckCards = (deckCards ++ player1OtherCards.toList ++ player2OtherCards.toList)
+          .filterNot(restartEvent.startedGame.players.flatMap(_.hand).contains)
+      restartEvent.startedGame.deck.cards must contain theSameElementsAs newDeckCards
+      restartEvent.startedGame.players.map(_.points) mustBe List(2 + player1ExtraPoints, 4 + player2ExtraPoints)
     }
   }
 
+  def toVisibleCard(card: Card) = VisibleCard(card.id, card.image)
+
   private def aCard = HiddenCard(
     CardId(UUID.randomUUID()),
-    URI.create(s"http://localhost:8080/card${Random.nextInt(100)}")
+    URI.create(s"http://localhost:8080/card${Random.nextInt(100)}.jpg")
   )
 }
-
-/*
-List(PlayerJoined(PlayerId(123)), PlayerJoined(PlayerId(124)), GameStarted(PlayerId(123)), BorrowedCard(HiddenCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3),PlayerId(123)), BorrowedCard(HiddenCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1),PlayerId(123)), BorrowedCard(HiddenCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2),PlayerId(123)), ReturnedCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),0), ReturnedCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),0), ReturnedCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),0), GotCard(PlayerId(123),HiddenCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1)), NextPlayer(PlayerId(124)), GotCard(PlayerId(124),HiddenCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2)), NextPlayer(PlayerId(123)), PlayedCard(VisibleCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1),PlayerId(123)), NextPlayer(PlayerId(124)), GotCard(PlayerId(124),HiddenCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3)), PlayedCard(VisibleCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2),PlayerId(124)), PlayedCard(VisibleCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3),PlayerId(124)), PlayerLeft(PlayerId(124),0), GameFinished(PlayerId(123)))
-List(PlayerJoined(PlayerId(123)), PlayerJoined(PlayerId(124)), GameStarted(PlayerId(123)), BorrowedCard(HiddenCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1),PlayerId(123)), BorrowedCard(HiddenCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2),PlayerId(123)), BorrowedCard(HiddenCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3),PlayerId(123)), ReturnedCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),0), ReturnedCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),0), ReturnedCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),0), GotCard(PlayerId(123),HiddenCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1)), NextPlayer(PlayerId(124)), GotCard(PlayerId(124),HiddenCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2)), NextPlayer(PlayerId(123)), PlayedCard(VisibleCard(CardId(7f85fe87-fadc-4041-b8bf-6858eda4c069),http://localhost:8080/card1),PlayerId(123)), NextPlayer(PlayerId(124)), GotCard(PlayerId(124),HiddenCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3)), PlayedCard(VisibleCard(CardId(88047d30-90de-4dfd-b10f-ea8678fa744a),http://localhost:8080/card2),PlayerId(124)), PlayedCard(VisibleCard(CardId(f2ca28b8-caac-4301-9dda-0bc77fcf544e),http://localhost:8080/card3),PlayerId(124)), PlayerLeft(PlayerId(124),0), GameFinished(PlayerId(123))) (GameSpec.scala:105)
-
- */

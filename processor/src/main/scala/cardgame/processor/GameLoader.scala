@@ -6,7 +6,8 @@ import java.util.UUID
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
-import cardgame.model.{CardId, Deck, DeckId, HiddenCard, RemoteClock, StartGame, StartingRules}
+import cardgame.processor.config.json._
+import cardgame.model.{CardId, Deck, DeckId, HiddenCard, PointCounting, RemoteClock, StartGame, StartingRules}
 import cardgame.processor.GameProcessor.FireAndForgetCommand
 import cats.effect.{IO, Resource}
 import io.circe.Decoder
@@ -37,7 +38,7 @@ object GameLoader {
     println(s"trying to read from ${file.getAbsolutePath}")
     val allImageFiles = file.listFiles().filter(_.getName.endsWith(".jpg"))
     val configurationFile = new File(s"decks/${deckId.value.toString}/deck.json")
-    val (cardConfiguration, startingRules) = Resource.fromAutoCloseable(
+    val (cardConfiguration, startingRules, pointRules) = Resource.fromAutoCloseable(
       IO {
         Source.fromFile(configurationFile, "utf-8")
       }
@@ -49,11 +50,12 @@ object GameLoader {
             configuration <- parse(json).map(_.hcursor)
             cards <- configuration.downField("cards").as[Map[String, Int]]
             startingRules <- configuration.downField("startingRules").as[StartingRules]
-          } yield (cards, startingRules)
+            pointRules = configuration.downField("pointRules").as[PointCounting].toOption
+          } yield (cards, startingRules, pointRules)
         }
     }.unsafeRunSync()
 
-    createDeck(allImageFiles, cardConfiguration, startingRules, deckId, server)
+    createDeck(allImageFiles, cardConfiguration, startingRules, pointRules, deckId, server)
 
   }
 
@@ -61,6 +63,7 @@ object GameLoader {
                           files: Array[File],
                           cardConfiguration: Map[String, Int],
                           startingRules: StartingRules,
+                          pointRules: Option[PointCounting],
                           deckId: DeckId, server: String
   ): Deck = {
     val cards = files.flatMap(
@@ -79,7 +82,8 @@ object GameLoader {
     Deck(
       cards,
       None,
-      startingRules
+      startingRules,
+      pointRules
     )
   }
 

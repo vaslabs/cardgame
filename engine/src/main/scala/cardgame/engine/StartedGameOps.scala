@@ -12,7 +12,7 @@ object StartedGameOps {
     private def draw(playerId: PlayerId): (Game, Event) = {
       val player = game.players.find(_.id == playerId).get
       val draw = game.deck.cards.take(1)
-      val newDeck = Deck(game.deck.cards.drop(1))
+      val newDeck = game.deck.copy(cards = game.deck.cards.drop(1))
       val newHand = player.copy(hand = player.hand ++ draw)
       game.copy(players = game.players.updated(game.nextPlayer, newHand), deck = newDeck) ->
         draw.headOption.map(c => GotCard(playerId, c))
@@ -21,7 +21,7 @@ object StartedGameOps {
 
     private def shuffle(playerId: PlayerId): (Game, Event) =
       if (game.deck.borrowed.isEmpty) {
-        val newDeck = Deck(Random.shuffle(game.deck.cards))
+        val newDeck = game.deck.copy(cards = Random.shuffle(game.deck.cards))
         game.copy(deck = newDeck) -> DeckShuffled(newDeck)
       } else
         game -> InvalidAction(playerId)
@@ -30,7 +30,7 @@ object StartedGameOps {
     private def bottomDraw(playerId: PlayerId): (Game, Event) = {
       val player = game.players.find(_.id == playerId).get
       val draw = game.deck.cards.takeRight(1)
-      val newDeck = Deck(game.deck.cards.dropRight(1))
+      val newDeck = game.deck.copy(cards = game.deck.cards.dropRight(1))
       val newHand = player.copy(hand = player.hand ++ draw)
 
       game.copy(
@@ -199,6 +199,60 @@ object StartedGameOps {
       game
     )
 
+    def restartGame(player: PlayerId): (Game, Event) = {
+      if (!validateEndGame(game))
+        game -> InvalidAction(player)
+      else {
+        val players = countPoints()
+        val deckCards = game.players.flatMap(_.gatheringPile.cards.toList) ++ game.discardPile.cards
+        val (deck, playersWithCards, discardedCards) = ShuffleGameAlgorithm.shuffleHand(game.deck.copy(cards = deckCards), players)
+
+        val startedGame = StartedGame(
+          playersWithCards,
+          deck,
+          shift(playersWithCards.size, game.nextPlayer, game.direction),
+          game.direction,
+          List.empty,
+          DiscardPile(discardedCards)
+        )
+
+        startedGame -> GameRestarted(startedGame)
+
+      }
+    }
+
+    def bonus(player: PlayingPlayer, players: List[PlayingPlayer], bonus: BonusRule) =
+      bonus match {
+        case MostCards(points) =>
+          players.find(
+            p => p.id != player.id && p.gatheringPile.cards.size >= player.gatheringPile.cards.size
+          ).map(_ => 0).getOrElse(points)
+        case NoBonus =>
+          0
+      }
+
+
+    private def countPoints(): List[PlayingPlayer] = {
+      game.players.map {
+        player =>
+          player.copy(
+            points = player.points + countPoints(player.gatheringPile) +
+              bonus(player, game.players, game.deck.pointRules.map(_.bonus).getOrElse(NoBonus)),
+            gatheringPile = player.gatheringPile.empty
+          )
+      }
+    }
+
+    private def countPoints(gatheringPile: GatheringPile): Int = (gatheringPile, game.deck.pointRules) match {
+      case (HiddenPile(cards), Some(pointCounting)) =>
+        cards.toList.map(c => c.cardName).map(cardName => pointCounting.cards.getOrElse(cardName, 0)).sum
+      case _ => 0
+
+    }
+
+    private def validateEndGame(game: StartedGame): Boolean =
+      game.deck.cards.isEmpty && game.deck.borrowed.isEmpty && game.players.forall(_.hand.isEmpty)
+
     private def throwDice(playerId: PlayerId, howMany: Int, sides: Int, randomizer: IO[Int]): (Game, Event) = game match {
       case sg @ StartedGame(players, _, current, _, _, _) =>
         ifHasTurn(players, current, playerId, {
@@ -207,6 +261,28 @@ object StartedGameOps {
           }.map(v => Die(sides, v % sides + 1))
           sg -> DiceThrow(playerId, dice.toList)
         }, sg
+        )
+    }
+
+    private def grabCards(playerId: PlayerId, cardsToGrab: Set[CardId]): (Game, Event) = game match {
+      case sg @ StartedGame(players, _, current, _, _, discardPile) =>
+        ifHasTurn(
+          players,
+          current,
+          playerId,
+          {
+            val playingPlayer = players(current)
+            val cards = discardPile.cards.filter(c => cardsToGrab.contains(c.id))
+            val remainingDiscardPile = discardPile.cards.filterNot(c => cardsToGrab.contains(c.id))
+            if (cards.size == cardsToGrab.size) {
+              val (playerWithUpdatedPile, event) = playingPlayer.gatheringPile.gatherCards(playingPlayer, cards.toSet)
+              sg.copy(players = sg.players.updated(current, playerWithUpdatedPile), discardPile = DiscardPile(remainingDiscardPile)) -> event
+            } else {
+              sg -> InvalidAction(playerId)
+            }
+
+          },
+          sg
         )
     }
 
@@ -258,6 +334,10 @@ object StartedGameOps {
                 this.recoverCard(player, cardId)
               case ThrowDice(p, howMany, sides) =>
                 throwDice(p, howMany, sides, randomizer)
+              case GrabCards(p, cards) =>
+                grabCards(p, cards)
+              case RestartGame(player) =>
+                this.restartGame(player)
 
               case _: GiveCard =>
                 game -> InvalidAction(playingGameAction.player)
@@ -293,6 +373,16 @@ object StartedGameOps {
     else
       current - 1
 
+
+  implicit final class GatheringPileOps(gatheringPile: GatheringPile) {
+    def gatherCards(player: PlayingPlayer, cards: Set[Card]): (PlayingPlayer, Event) = gatheringPile match {
+      case NoGathering =>
+        player -> InvalidAction(player.id)
+      case HiddenPile(currentCards) =>
+        val playerWithNewPile = player.copy(gatheringPile = HiddenPile(cards.map(c => HiddenCard(c.id, c.image)) ++ currentCards))
+         playerWithNewPile -> AddedToPile(player.id, cards.map(c => VisibleCard(c.id, c.image)))
+    }
+  }
 
 
 }
