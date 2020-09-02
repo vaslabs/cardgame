@@ -13,7 +13,7 @@ First, check if you have Java installed on your computer.
 
 ### Starting the server
 
-1. Download the release from https://github.com/vaslabs/cardgame/releases/tag/1.0
+1. Download the latest release from https://github.com/vaslabs/cardgame/releases/
 2. `unzip service-1.0` and change directory to service-1.0 `cd service-1.0`
 You should be able to see 3 directories (bin, lib and decks)
 3. Start the service with ./bin/service
