@@ -161,6 +161,4 @@ for game creation. You can improvise to play more games and even combine with ot
     * Players can leave the game if they have an empty hand
     * Players can switch direction of play (just indicative)
 
-- Actions are done through http
-- Results are retrieve via a server sent event stream
-- If clients get out of sync they can retrieve the whole game state  
+- Actions and results are communicated via a websocket
