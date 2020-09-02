@@ -27,7 +27,8 @@ class GameProcessorSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll
     val randomizer = IO.pure(Random.nextInt())
     val playerA = PlayerId("a")
     val playerB = PlayerId("b")
-    val playerAClock = Map(playerA -> 0L, playerB -> 0L)
+    val playerAClock = Map(playerA -> 0L)
+    val playerBClock = Map(playerB -> 0L)
 
     val streamingPlayer = actorTestKit.createTestProbe[PlayerEventsReader.Protocol]("StreamingPlayer")
 
@@ -39,16 +40,26 @@ class GameProcessorSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll
       gameProcessor ! FireAndForgetCommand(DrawCard(playerA), RemoteClock(tick(playerAClock, playerA)))
 
       val streamingClockedResponse = streamingPlayer.expectMessageType[UserResponse].clockedResponse
-      streamingClockedResponse.clock mustBe Map(playerA.value -> 1, playerB.value -> 0)
+      streamingClockedResponse.clock mustBe Map(playerA.value -> 1)
       streamingClockedResponse.serverClock mustBe 2
+      streamingClockedResponse.event.getClass must not be classOf[OutOfSync]
 
       val newPlayerAClock = tick(tick(playerAClock, playerA), playerA)
 
       gameProcessor ! FireAndForgetCommand(EndTurn(playerA), RemoteClock(tick(newPlayerAClock, playerA)))
 
       val endTurnStreamingClockedResponse = streamingPlayer.expectMessageType[UserResponse].clockedResponse
-      endTurnStreamingClockedResponse.clock mustBe Map(playerA.value -> 3, playerB.value -> 0)
+      endTurnStreamingClockedResponse.clock mustBe Map(playerA.value -> 3)
       endTurnStreamingClockedResponse.serverClock mustBe 4
+      endTurnStreamingClockedResponse.event.getClass must not be classOf[OutOfSync]
+
+      gameProcessor ! FireAndForgetCommand(EndTurn(playerB), RemoteClock(tick(playerBClock, playerB)))
+
+      val playerBResponse = streamingPlayer.expectMessageType[UserResponse].clockedResponse
+      playerBResponse.clock mustBe Map(playerA.value -> 3, playerB.value -> 1)
+      playerBResponse.serverClock mustBe 6
+      playerBResponse.event.getClass must not be classOf[OutOfSync]
+
 
     }
 

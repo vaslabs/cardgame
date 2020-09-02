@@ -44,8 +44,8 @@ object GameProcessor {
   }
 
   def checkIdempotency(requestingEntity: PlayerId)(oldClock: RemoteClock, newClock: RemoteClock): Boolean = {
-    (oldClock.vectorClock.get(requestingEntity), newClock.vectorClock.get(requestingEntity)) match {
-      case (Some(oldClock), Some(newClock)) =>
+    (oldClock.vectorClock.getOrElse(requestingEntity, 0L), newClock.vectorClock.get(requestingEntity)) match {
+      case (oldClock, Some(newClock)) =>
         oldClock < newClock
       case _ =>
         false
