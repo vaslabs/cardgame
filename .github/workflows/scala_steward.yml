@@ -1,0 +1,19 @@
+
+name: Scala steward
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  repository_dispatch:
+    types: [scala-steward]
+
+jobs:
+  scala-steward:
+    runs-on: ubuntu-latest
+    name: Launch Scala Steward
+    steps:
+      - name: Launch Scala Steward
+        uses: scala-steward-org/scala-steward-action@v2
+        with:
+          github-token: ${{secrets.SCALA_STEWARD}}
+          author-email: $GITHUB_ACTOR@@users.noreply.github.com
+          author-name: $GITHUB_ACTOR
