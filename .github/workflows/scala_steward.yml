@@ -15,5 +15,5 @@ jobs:
         uses: scala-steward-org/scala-steward-action@v2
         with:
           github-token: ${{secrets.SCALA_STEWARD}}
-          author-email: $GITHUB_ACTOR@@users.noreply.github.com
-          author-name: $GITHUB_ACTOR
+          author-email: 70717912+vaslabs-bot@users.noreply.github.com
+          author-name: vaslabs-bot
