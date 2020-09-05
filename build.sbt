@@ -2,7 +2,7 @@ name := "cardgame"
 
 version := "0.1"
 
-scalaVersion in ThisBuild := "2.13.1"
+scalaVersion in ThisBuild := "2.13.3"
 
 
 lazy val `card-game` = (project in file("."))
@@ -42,6 +42,9 @@ lazy val service = (project in file("service"))
   .settings(packageSettings)
   .settings(versioningSettings)
   .settings(compilerSettings)
+  .settings(graalSettings)
+  .settings(libraryDependencies ++= graalAkkaDependencies)
+  .enablePlugins(GraalVMNativeImagePlugin)
   .dependsOn(endpoints, processor, engine)
 
 lazy val dockerSettings = Seq(
@@ -92,4 +95,20 @@ lazy val compilerSettings = Seq(
     "-Ywarn-unused:imports",
     "-Xfatal-warnings"
   )
+)
+
+lazy val graalSettings = Seq(
+  graalVMNativeImageOptions ++= Seq(
+    "-H:IncludeResources=.*\\.properties",
+    "-H:ReflectionConfigurationFiles=" + baseDirectory.value / "graal" / "reflectconf-jul.json",
+    "--initialize-at-build-time",
+    "--no-fallback",
+    "--allow-incomplete-classpath"
+  )
+)
+val graalAkkaVersion = "0.5.0"
+
+lazy val graalAkkaDependencies = Seq(
+  "com.github.vmencik" %% "graal-akka-http" % graalAkkaVersion,
+  "com.github.vmencik" %% "graal-akka-slf4j" % graalAkkaVersion
 )
