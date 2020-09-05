@@ -103,12 +103,15 @@ lazy val graalSettings = Seq(
     "-H:ReflectionConfigurationFiles=" + baseDirectory.value / "graal" / "reflectconf-jul.json",
     "--initialize-at-build-time",
     "--no-fallback",
-    "--allow-incomplete-classpath"
+    "--allow-incomplete-classpath",
+    "--report-unsupported-elements-at-runtime"
   )
 )
 val graalAkkaVersion = "0.5.0"
 
 lazy val graalAkkaDependencies = Seq(
   "com.github.vmencik" %% "graal-akka-http" % graalAkkaVersion,
-  "com.github.vmencik" %% "graal-akka-slf4j" % graalAkkaVersion
+  "com.github.vmencik" %% "graal-akka-slf4j" % graalAkkaVersion,
+  "com.github.vmencik" %% "graal-akka-stream" % graalAkkaVersion,
+  "com.github.vmencik" %% "graal-akka-actor" % graalAkkaVersion
 )
