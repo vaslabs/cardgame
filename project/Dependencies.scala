@@ -24,7 +24,7 @@ object Dependencies {
     }
 
     object cats {
-      val effect = "2.1.2"
+      val effect = "2.1.4"
       val core = "2.1.0"
       val kittens = "2.1.0"
     }
