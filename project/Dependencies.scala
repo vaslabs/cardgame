@@ -18,7 +18,7 @@ object Dependencies {
     }
 
     object akka {
-      val cors = "0.4.2"
+      val cors = "0.4.3"
 
       val main = "2.6.8"
     }
