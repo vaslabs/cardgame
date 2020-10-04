@@ -18,13 +18,13 @@ object Dependencies {
     }
 
     object akka {
-      val cors = "0.4.2"
+      val cors = "0.4.3"
 
       val main = "2.6.8"
     }
 
     object cats {
-      val effect = "2.1.2"
+      val effect = "2.2.0"
       val core = "2.1.0"
       val kittens = "2.1.0"
     }
