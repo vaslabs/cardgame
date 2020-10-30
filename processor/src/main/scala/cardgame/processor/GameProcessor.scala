@@ -5,6 +5,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import cardgame.engine.GameOps._
 import cardgame.model._
+import cardgame.processor.PlayerEventsReader.UserResponse
 import cats.Monoid
 import cats.derived._
 import cats.effect.IO
@@ -28,8 +29,8 @@ object GameProcessor {
           val newRemoteClock = remoteClockCopy |+| remoteClock
           val updateLocalClock = localClock + ATOMIC_RECEIVE_AND_SEND
 
-          val (gameAffected, event) = game.action(c.action.action, randomizer, checkIdempotency)(remoteClock, remoteClock)
-          ctx.system.eventStream ! EventStream.Publish(event)
+          val (gameAffected, event) = game.action(c.action.action, randomizer, checkIdempotency)(remoteClockCopy, newRemoteClock)
+          ctx.system.eventStream ! EventStream.Publish(UserResponse(ClockedResponse(event, newRemoteClock, updateLocalClock)))
           c match {
             case rc: ReplyCommand =>
               rc.replyTo ! Right(ClockedResponse(event, newRemoteClock, updateLocalClock))
