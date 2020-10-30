@@ -1,6 +1,8 @@
 package cardgame
 
 import java.net.URI
+import java.security.interfaces.RSAPublicKey
+import java.security.KeyPairGenerator
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -13,10 +15,16 @@ import cardgame.model._
 import scala.util.Random
 
 class GameSpec extends AnyWordSpec with Matchers {
-
+  def generateKeyPair = {
+    val kpg = KeyPairGenerator.getInstance("RSA")
+    kpg.initialize(1024)
+    kpg.generateKeyPair()
+  }
+  private val keyPair1 = generateKeyPair
+  private val keyPair2 = generateKeyPair
   private def joinPlayers() = List(
-    JoiningPlayer(PlayerId("123")),
-    JoiningPlayer(PlayerId("124"))
+    JoiningPlayer(PlayerId("123"), keyPair1.getPublic.asInstanceOf[RSAPublicKey]),
+    JoiningPlayer(PlayerId("124"), keyPair2.getPublic.asInstanceOf[RSAPublicKey])
   )
 
   val players = joinPlayers()

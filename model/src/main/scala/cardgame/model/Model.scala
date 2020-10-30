@@ -1,6 +1,7 @@
 package cardgame.model
 
 import java.net.URI
+import java.security.interfaces.RSAPublicKey
 import java.util.UUID
 
 case class DeckId(value: UUID)
@@ -29,7 +30,7 @@ sealed trait Player {
   def id: PlayerId
 }
 
-case class JoiningPlayer(id: PlayerId) extends Player
+case class JoiningPlayer(id: PlayerId, publicKey: RSAPublicKey) extends Player
 
 case class PlayingPlayer(id: PlayerId, hand: List[Card], gatheringPile: GatheringPile, points: Long) extends Player
 

@@ -10,7 +10,11 @@ object GameOps {
 
     def join(player: JoiningPlayer): (Game, Event) = {
       game match {
-        case sg: StartingGame =>
+        case sg: StartingGame if !sg.playersJoined.exists(_.id == player.id) =>
+          sg.join(player)
+        case sg: StartingGame if
+          (sg.playersJoined.exists(_.id == player.id) &&
+            sg.playersJoined.exists(_.publicKey.getEncoded sameElements player.publicKey.getEncoded)) =>
           sg.join(player)
         case _ =>
           game -> InvalidAction(player.id)

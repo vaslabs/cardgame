@@ -1,5 +1,6 @@
 package cardgame.processor
 
+import java.security.interfaces.RSAPublicKey
 import java.util.UUID
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -34,9 +35,9 @@ object ActiveGames {
         .map(_ ! GameProcessor.Get(playerId, replyTo))
         .getOrElse(replyTo ! Left(()))
       Behaviors.same
-    case (ctx, JoinExistingGame(gameId, playerId, remoteClock, replyTo)) =>
+    case (ctx, JoinExistingGame(gameId, playerId, remoteClock, publicKey, replyTo)) =>
       gameProcessor(ctx, gameId).map(
-        _ ! GameProcessor.RunCommand(replyTo, JoinGame(JoiningPlayer(playerId)), remoteClock)
+        _ ! GameProcessor.RunCommand(replyTo, JoinGame(JoiningPlayer(playerId, publicKey)), remoteClock)
       ).getOrElse(replyTo ! Left(()))
       Behaviors.same
     case (ctx, LoadGame(token, gameId, deckId, server, replyTo)) =>
@@ -102,6 +103,7 @@ object ActiveGames {
     gameId: GameId,
     playerId: PlayerId,
     remoteClock: RemoteClock,
+    publicKey: RSAPublicKey,
     replyTo: ActorRef[Either[Unit, ClockedResponse]]
   ) extends Protocol
 
@@ -137,9 +139,9 @@ object ActiveGames {
                                   timeout: Timeout, scheduler: Scheduler): Future[GetGameRes] =
         actorRef ? (GetGameStatus(gameId, playerId, _))
 
-      def joinGame(gameId: GameId, playerId: PlayerId, remoteClock: RemoteClock)(implicit
+      def joinGame(gameId: GameId, playerId: PlayerId, remoteClock: RemoteClock, publicKey: RSAPublicKey)(implicit
                                                        timeout: Timeout, scheduler: Scheduler): Future[ActionRes] =
-        actorRef ? (JoinExistingGame(gameId, playerId, remoteClock, _))
+        actorRef ? (JoinExistingGame(gameId, playerId, remoteClock, publicKey, _))
 
       def startGame(token: String, gameId: GameId, deckId: DeckId, server: String)(implicit
                     timeout: Timeout, scheduler: Scheduler): Future[Either[Unit, Unit]] =

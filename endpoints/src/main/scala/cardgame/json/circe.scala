@@ -1,6 +1,8 @@
 package cardgame.json
 
 import java.net.URI
+import java.security.interfaces.RSAPublicKey
+import java.util.Base64
 
 import cardgame.model.{CardId, ClockedAction, ClockedResponse, DeckId, Event, Game, HiddenCard, PlayerId, PlayingGameAction}
 import io.circe.{Codec, Decoder, Encoder, Json, KeyDecoder, KeyEncoder}
@@ -8,6 +10,7 @@ import io.circe.generic.auto._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
 import cats.implicits._
+import sun.security.rsa.RSAPublicKeyImpl
 
 import scala.util.Try
 object circe {
@@ -28,6 +31,16 @@ object circe {
 
   implicit val gameEncoder: Encoder[Game] = deriveEncoder
   implicit val gameDecoder: Decoder[Game] = deriveDecoder
+
+  implicit val rsaPublicKeyEncoder: Encoder[RSAPublicKey] = Encoder.encodeString.contramap {
+    rsaPublicKey =>
+      Base64.getEncoder.encodeToString(rsaPublicKey.getEncoded)
+  }
+
+  implicit val rsaPublicKeyDecoder: Decoder[RSAPublicKey] = Decoder.decodeString.emapTry {
+    value =>
+      Try(RSAPublicKeyImpl.newKey(Base64.getDecoder.decode(value)))
+  }
 
   implicit val playerIdKeyEncoder: KeyEncoder[PlayerId] = KeyEncoder.encodeKeyString.contramap(_.value)
   implicit val playerIdKeyDecoder: KeyDecoder[PlayerId] = KeyDecoder.decodeKeyString.map(PlayerId)

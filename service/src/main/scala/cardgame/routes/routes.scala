@@ -37,7 +37,7 @@ class Routes(activeGames: ActorRef[ActiveGames.Protocol])(implicit scheduler: Sc
   }
 
   val startingGame =  JoiningGame.joinPlayer.toRoute {
-      case (gameId, playerId) => activeGames.joinGame(gameId, playerId, RemoteClock.zero)
+      case (gameId, playerId, publicKey) => activeGames.joinGame(gameId, playerId, RemoteClock.zero, publicKey)
     } ~ View.gameStatus.toRoute {
       case (gameId, playerId) => activeGames.getGame(gameId, playerId)
     } ~ get {
