@@ -25,15 +25,15 @@ object GameOps {
 
       game match {
         case sg: StartingGame =>
-          game -> sg.playersJoined.find(_.id == authorisationTicket.player).map(
-            player => AuthorisePlayer(authorisationTicket, player.publicKey)
-          ).getOrElse(InvalidAction(authorisationTicket.player))
+          game -> sg.playersJoined.find(_.id == authorisationTicket.playerId).map(
+            player => AuthorisePlayer(player.id)
+          ).getOrElse(InvalidAction(authorisationTicket.playerId))
         case StartedGame(players, _, _, _, _, _) =>
-          game -> players.find(_.id == authorisationTicket.player).map(
-            player => AuthorisePlayer(authorisationTicket, player.publicKey)
-          ).getOrElse(InvalidAction(authorisationTicket.player))
+          game -> players.find(_.id == authorisationTicket.playerId).map(
+            player => AuthorisePlayer(player.id)
+          ).getOrElse(InvalidAction(authorisationTicket.playerId))
         case _ =>
-          game -> InvalidAction(authorisationTicket.player)
+          game -> InvalidAction(authorisationTicket.playerId)
       }
     }
 

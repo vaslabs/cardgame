@@ -6,7 +6,6 @@ import java.security.{KeyPair, KeyPairGenerator}
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
-import cardgame.engine.GameState
 import cats.effect.IO
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -150,7 +149,7 @@ class GameSpec extends AnyWordSpec with Matchers {
         GotCard( player3.id, deckCards.head)
       )
 
-      engine.GameState(commands, game, randomizer).start.toList mustBe events
+      cardgame.GameState(commands, game, randomizer).start.toList mustBe events
     }
 
     "draw from the bottom" in {
@@ -176,7 +175,7 @@ class GameSpec extends AnyWordSpec with Matchers {
         NextPlayer(player3.id)
       )
 
-      engine.GameState(commands, game, randomizer).start.toList mustBe events
+      cardgame.GameState(commands, game, randomizer).start.toList mustBe events
     }
 
     "borrow cards from the deck and put them back in any order" in {
@@ -196,7 +195,7 @@ class GameSpec extends AnyWordSpec with Matchers {
         ReturnedCard(cardsToBorrow(1).id, 0)
       )
 
-      engine.GameState(commands, game, randomizer).start.toList mustBe expectedEvents
+      cardgame.GameState(commands, game, randomizer).start.toList mustBe expectedEvents
     }
 
     "steal cards from another player" in {
@@ -210,7 +209,7 @@ class GameSpec extends AnyWordSpec with Matchers {
         PlayedCard(VisibleCard(stolenCard.id, stolenCard.image), player1.id)
       )
 
-      engine.GameState(commands, game, randomizer).start.toList mustBe expectedEvents
+      cardgame.GameState(commands, game, randomizer).start.toList mustBe expectedEvents
     }
     "play cards back to deck" in {
       val commands = LazyList(
@@ -227,7 +226,7 @@ class GameSpec extends AnyWordSpec with Matchers {
         GotCard(player2.id, deckCards.last)
       )
 
-      engine.GameState(commands, game, randomizer).start.toList mustBe
+      cardgame.GameState(commands, game, randomizer).start.toList mustBe
         expectedEvents
     }
 
@@ -253,7 +252,7 @@ class GameSpec extends AnyWordSpec with Matchers {
         )
       )
 
-      engine.GameState(commands, game, randomizer).start.toList mustBe
+      cardgame.GameState(commands, game, randomizer).start.toList mustBe
         expectedEvents
     }
 
@@ -267,7 +266,7 @@ class GameSpec extends AnyWordSpec with Matchers {
         atomicInteger.getAndAdd(1) % 6 + 1
       }
 
-      engine.GameState(commands, game, dieRandomizer).start.toList mustBe List(
+      cardgame.GameState(commands, game, dieRandomizer).start.toList mustBe List(
         DiceThrow(players.head.id, List(Die(6, 1), Die(6, 2)))
       )
     }
@@ -287,7 +286,7 @@ class GameSpec extends AnyWordSpec with Matchers {
           GrabCards(players.head.id, Set(firstCard, secondCard).map(_.id)),
           GrabCards(players.head.id, Set(firstCard, secondCard).map(_.id))
         )
-        engine.GameState(commands, game, randomizer).start.toList mustBe List(
+        cardgame.GameState(commands, game, randomizer).start.toList mustBe List(
           GotCard(player1.id, firstCard),
           GotCard(player1.id, secondCard),
           PlayedCard(toVisibleCard(firstCard), player1.id),
@@ -343,7 +342,7 @@ class GameSpec extends AnyWordSpec with Matchers {
         3
       else
         0
-      val restartEvent = engine.GameState(LazyList(RestartGame(PlayerId("b"))), game, IO(Random.nextInt())).start.head.asInstanceOf[GameRestarted]
+      val restartEvent = cardgame.GameState(LazyList(RestartGame(PlayerId("b"))), game, IO(Random.nextInt())).start.head.asInstanceOf[GameRestarted]
 
       restartEvent.startedGame.players.map(_.gatheringPile) mustBe List(HiddenPile(Set.empty), HiddenPile(Set.empty))
       restartEvent.startedGame.players.map(_.hand.size) mustBe List(1, 1)

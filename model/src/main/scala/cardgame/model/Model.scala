@@ -58,10 +58,14 @@ case class HiddenPile(cards: Set[HiddenCard]) extends GatheringPile {
 
 sealed trait Action
 
-sealed trait JoiningGameAction extends Action
+sealed trait JoiningGameAction extends Action {
+  def playerId: PlayerId
+}
 
-case class JoinGame(player: JoiningPlayer) extends JoiningGameAction
-case class Authorise(player: PlayerId, remoteClock: RemoteClock, serverClock: Long, signature: String) extends JoiningGameAction
+case class JoinGame(player: JoiningPlayer) extends JoiningGameAction {
+  def playerId = player.id
+}
+case class Authorise(playerId: PlayerId) extends JoiningGameAction
 
 case class StartGame(deck: Deck) extends Action
 
@@ -69,7 +73,7 @@ sealed trait PlayingGameAction extends Action {
   def player: PlayerId
 }
 
-case class ClockedAction(action: PlayingGameAction, vectorClock: Map[String, Long], serverClock: Long)
+case class ClockedAction(action: Action, vectorClock: Map[String, Long], serverClock: Long, signature: String)
 
 sealed trait MustHaveTurnAction extends PlayingGameAction
 sealed trait FreeAction extends PlayingGameAction
@@ -215,10 +219,8 @@ case class DiceThrow(playerId: PlayerId, dice: List[Die]) extends Event
 case class ShuffledHand(playerId: PlayerId, hand: List[Card]) extends Event
 case class AddedToPile(playerId: PlayerId, cards: Set[VisibleCard]) extends Event
 case class GameRestarted(startedGame: StartedGame) extends Event
-case class AuthorisePlayer(authorise: Authorise, publicKey: RSAPublicKey) extends Event {
-  def playerId = authorise.player
-  def signature = authorise.signature
-}
+case class AuthorisePlayer(player: PlayerId) extends Event
+
 case class Die(sides: Int, result: Int)
 object InvalidAction {
   def apply(): InvalidAction = InvalidAction(None)
@@ -239,7 +241,7 @@ object ClockedResponse {
 }
 
 case class RemoteClock(vectorClock: Map[PlayerId, Long]) {
-  private[model] def showMap: Map[String, Long] = vectorClock.map {
+  def showMap: Map[String, Long] = vectorClock.map {
     case (key, value) => key.value -> value
   }
 }

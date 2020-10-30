@@ -3,16 +3,14 @@ package cardgame.processor
 import akka.actor.typed.eventstream.EventStream
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
-import cardgame.model._
 import cardgame.engine.GameOps._
-import cardgame.processor.PlayerEventsReader.{AuthorisationTicket, UserResponse}
+import cardgame.model._
 import cats.Monoid
+import cats.derived._
 import cats.effect.IO
 import cats.implicits.catsKernelStdMonoidForMap
 import cats.syntax.semigroup._
-import cats.derived._
-import io.circe.Encoder
-import io.circe.syntax._
+
 object GameProcessor {
 
   implicit val vectorClockLongMonoid: Monoid[Long] = Monoid.instance(0L, Math.max)
@@ -21,22 +19,17 @@ object GameProcessor {
   private final val ATOMIC_RECEIVE_AND_SEND = 2
 
 
-  def behavior(game: Game, randomizer: IO[Int], localClock: Long, remoteClock: RemoteClock)(implicit authEncoder: Encoder[Authorise]): Behavior[Protocol] = Behaviors.setup {
+  def behavior(game: Game, randomizer: IO[Int], localClock: Long, remoteClockCopy: RemoteClock)(validSignature: (Game, ClockedAction) => Boolean): Behavior[Protocol] = Behaviors.setup {
     ctx =>
       Behaviors.receiveMessage {
-        case c: Command =>
-          val newRemoteClock = remoteClock |+| c.remoteClock
+        case c: Command if validSignature(game, c.action) =>
+
+          val remoteClock = RemoteClock.of(c.action.vectorClock)
+          val newRemoteClock = remoteClockCopy |+| remoteClock
           val updateLocalClock = localClock + ATOMIC_RECEIVE_AND_SEND
 
-          val (gameAffected, event) = game.action(c.action, randomizer, checkIdempotency)(remoteClock, c.remoteClock)
-          val publishableEvent = event match {
-            case auth: AuthorisePlayer =>
-              val plainText = auth.authorise.asJson.noSpaces
-              AuthorisationTicket(auth.playerId, plainText, auth.signature, auth.publicKey)
-            case event =>
-              UserResponse(ClockedResponse(event, newRemoteClock, updateLocalClock))
-          }
-          ctx.system.eventStream ! EventStream.Publish(publishableEvent)
+          val (gameAffected, event) = game.action(c.action.action, randomizer, checkIdempotency)(remoteClock, remoteClock)
+          ctx.system.eventStream ! EventStream.Publish(event)
           c match {
             case rc: ReplyCommand =>
               rc.replyTo ! Right(ClockedResponse(event, newRemoteClock, updateLocalClock))
@@ -44,9 +37,11 @@ object GameProcessor {
             case _ =>
           }
 
-          behavior(gameAffected, randomizer, updateLocalClock, newRemoteClock)
+          behavior(gameAffected, randomizer, updateLocalClock, newRemoteClock)(validSignature)
         case Get(playerId, replyTo) =>
           replyTo ! Right(personalise(playerId, game))
+          Behaviors.same
+        case _ =>
           Behaviors.same
       }
   }
@@ -68,8 +63,7 @@ object GameProcessor {
   sealed trait Protocol
 
   sealed trait Command extends Protocol {
-    def action: Action
-    def remoteClock: RemoteClock
+    def action: ClockedAction
   }
 
   sealed trait ReplyCommand extends Command {
@@ -78,11 +72,10 @@ object GameProcessor {
 
   case class RunCommand(
        replyTo: ActorRef[Either[Unit, ClockedResponse]],
-       action: Action,
-       remoteClock: RemoteClock
+       action: ClockedAction
   ) extends ReplyCommand
 
-  case class FireAndForgetCommand(action: Action, remoteClock: RemoteClock) extends Command
+  case class FireAndForgetCommand(action: ClockedAction) extends Command
 
   sealed trait Query extends Protocol {
     def replyTo: ActorRef[Either[Unit, Game]]

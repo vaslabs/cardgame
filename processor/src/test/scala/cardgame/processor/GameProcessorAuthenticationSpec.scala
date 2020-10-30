@@ -9,8 +9,6 @@ import cats.effect.IO
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import JsonEncoder._
-import io.circe.generic.auto._
 
 class GameProcessorAuthenticationSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll{
 
@@ -26,18 +24,24 @@ class GameProcessorAuthenticationSpec extends AnyWordSpec with Matchers with Bef
   private val keyPair1 = generateKeyPair
   private val otherKey = generateKeyPair
 
+  val dummySignatureCheck: (Game, ClockedAction) => Boolean = (_, _) => true
+
   "a joining player" must {
     val joiningPlayer = PlayerId("player1")
     val gameProcessor = actorTestKit.spawn(
-      GameProcessor.behavior(startingGame, IO.delay(1), 0, RemoteClock.zero)
+      GameProcessor.behavior(startingGame, IO.delay(1), 0, RemoteClock.zero)(dummySignatureCheck)
     )
     val userProbe = actorTestKit.createTestProbe[Either[Unit, ClockedResponse]]()
 
     "authenticate with an id and a public key" in {
       gameProcessor ! GameProcessor.RunCommand(
         userProbe.ref,
-        JoinGame(JoiningPlayer(joiningPlayer, keyPair1.getPublic.asInstanceOf[RSAPublicKey])),
-        RemoteClock.of(Map("player1" -> 1))
+        ClockedAction(
+          JoinGame(JoiningPlayer(joiningPlayer, keyPair1.getPublic.asInstanceOf[RSAPublicKey])),
+          Map("player1" -> 1),
+          0L,
+          ""
+        )
       )
 
       userProbe.expectMessageType[Right[Unit, ClockedResponse]].value.event mustBe PlayerJoined(joiningPlayer)
@@ -46,8 +50,12 @@ class GameProcessorAuthenticationSpec extends AnyWordSpec with Matchers with Bef
     "a player with the same id but different public key is not accepted" in {
       gameProcessor ! GameProcessor.RunCommand(
         userProbe.ref,
-        JoinGame(JoiningPlayer(joiningPlayer, otherKey.getPublic.asInstanceOf[RSAPublicKey])),
-        RemoteClock.of(Map("player1" -> 1))
+        ClockedAction(
+          JoinGame(JoiningPlayer(joiningPlayer, otherKey.getPublic.asInstanceOf[RSAPublicKey])),
+          Map("player1" -> 1),
+          0L,
+          ""
+        )
       )
 
       userProbe.expectMessageType[Right[Unit, ClockedResponse]].value.event mustBe InvalidAction(joiningPlayer)
@@ -56,8 +64,12 @@ class GameProcessorAuthenticationSpec extends AnyWordSpec with Matchers with Bef
     "a player claiming the same public key is accepted" in {
       gameProcessor ! GameProcessor.RunCommand(
         userProbe.ref,
-        JoinGame(JoiningPlayer(joiningPlayer, keyPair1.getPublic.asInstanceOf[RSAPublicKey])),
-        RemoteClock.of(Map("player1" -> 1))
+        ClockedAction(
+          JoinGame(JoiningPlayer(joiningPlayer, keyPair1.getPublic.asInstanceOf[RSAPublicKey])),
+          Map("player1" -> 1),
+          0L,
+          "",
+        )
       )
 
       userProbe.expectMessageType[Right[Unit, ClockedResponse]].value.event mustBe PlayerJoined(joiningPlayer)

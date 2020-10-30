@@ -85,9 +85,10 @@ object circe {
       (
         hcursor.downField("vectorClock").as[Map[String, Long]].orElse(Right(Map.empty[String, Long])),
         hcursor.downField("serverClock").as[Long].orElse(Right(0L)),
+        hcursor.downField("signature").as[String],
         hcursor.as[PlayingGameAction]
       ).mapN(
-        (clock, serverClock, action) => ClockedAction(action, clock, serverClock)
+        (clock, serverClock, signature, action) => ClockedAction(action, clock, serverClock, signature)
       )
   }
 }

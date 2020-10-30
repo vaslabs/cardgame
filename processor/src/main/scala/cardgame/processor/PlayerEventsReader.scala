@@ -1,9 +1,5 @@
 package cardgame.processor
 
-import java.nio.charset.StandardCharsets
-import java.security.Signature
-import java.security.interfaces.RSAPublicKey
-
 import akka.actor.typed.eventstream.EventStream
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
@@ -15,15 +11,9 @@ object PlayerEventsReader {
   def behavior(playerId: PlayerId, replyTo: ActorRef[ClockedResponse]): Behavior[Protocol] = Behaviors.setup {
     ctx =>
       Behaviors.receiveMessage {
-          case AuthorisationTicket(player, plainText, userSignature, publicKey) if player == playerId =>
-            val verified = verifySignature(plainText, userSignature, publicKey)
-            if (verified) {
-              ctx.system.eventStream ! EventStream.Subscribe(ctx.self)
-              readingEvents(playerId, replyTo)
-            } else {
-              Behaviors.stopped
-            }
-
+        case UserResponse(ClockedResponse(AuthorisePlayer(player), _, _)) if playerId == player =>
+          ctx.system.eventStream ! EventStream.Subscribe(ctx.self)
+          readingEvents(player, replyTo)
         case _ =>
           Behaviors.same
       }
@@ -43,26 +33,15 @@ object PlayerEventsReader {
                               id: PlayerId,
                               replyTo: ActorRef[ClockedResponse],
                               swapConnectionTo: ActorRef[ClockedResponse]): Behavior[Protocol] = Behaviors.receive {
+
+    case (ctx, UserResponse(ClockedResponse(AuthorisePlayer(player), _, _))) if id == player =>
+      ctx.system.eventStream ! EventStream.Subscribe(ctx.self)
+      readingEvents(id, swapConnectionTo)
     case (_, UserResponse(msg)) =>
       replyTo ! personalise(msg, id)
       Behaviors.same
     case (_, UpdateStreamer(streamer)) =>
       swapConnection(id, replyTo, streamer)
-    case (ctx, AuthorisationTicket(player, plainText, userSignature, publicKey)) if player == id =>
-      val verified = verifySignature(plainText, userSignature, publicKey)
-      if (verified) {
-        ctx.system.eventStream ! EventStream.Subscribe(ctx.self)
-        readingEvents(id, swapConnectionTo)
-      } else {
-        readingEvents(id, replyTo)
-      }
-  }
-
-  private def verifySignature(plainText: String, userSignature: String, publicKey: RSAPublicKey): Boolean = {
-    val signature = Signature.getInstance("SHA256withRSA")
-    signature.initVerify(publicKey)
-    signature.update(plainText.getBytes(StandardCharsets.UTF_8))
-    signature.verify(userSignature.getBytes(StandardCharsets.UTF_8))
   }
 
   private def personalise(clockedResponse: ClockedResponse, playerId: PlayerId): ClockedResponse = {
@@ -117,12 +96,7 @@ object PlayerEventsReader {
   sealed trait Protocol
   case class UserResponse(clockedResponse: ClockedResponse) extends Protocol
   case class UpdateStreamer(streamer: ActorRef[ClockedResponse]) extends Protocol
-  case class AuthorisationTicket(
-                                  player: PlayerId,
-                                  plainText: String,
-                                  signature: String,
-                                  publicKey: RSAPublicKey
-                                ) extends Protocol
+  case class AuthorisationTicket(player: PlayerId) extends Protocol
 
 
 }
