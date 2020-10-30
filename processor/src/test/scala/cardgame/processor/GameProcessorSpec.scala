@@ -1,6 +1,8 @@
 package cardgame.processor
 
 import java.net.URI
+import java.security.KeyPairGenerator
+import java.security.interfaces.RSAPublicKey
 import java.util.UUID
 
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
@@ -14,7 +16,8 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.util.Random
-
+import cardgame.processor.JsonEncoder._
+import io.circe.generic.auto._
 class GameProcessorSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll{
 
   val actorTestKit = ActorTestKit("GameProcessorSpec")
@@ -103,7 +106,13 @@ object GameProcessorSpec {
     )
   }
 
-  def emptyHandedPlayer(id: String) = PlayingPlayer(PlayerId(id), List.empty, NoGathering, 0)
+  def randomKey = {
+    val kpg = KeyPairGenerator.getInstance("RSA")
+    kpg.initialize(1024)
+    kpg.generateKeyPair().getPublic.asInstanceOf[RSAPublicKey]
+  }
+
+  def emptyHandedPlayer(id: String) = PlayingPlayer(PlayerId(id), List.empty, NoGathering, 0, randomKey)
 
   def localUri(i: Int): URI = URI.create(s"local://card/${i}.jpg")
 }

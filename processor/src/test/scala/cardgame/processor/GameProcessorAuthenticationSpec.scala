@@ -4,11 +4,13 @@ import java.security.KeyPairGenerator
 import java.security.interfaces.RSAPublicKey
 
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
-import cardgame.model.{ClockedResponse, InvalidAction, JoinGame, JoiningPlayer, PlayerId, PlayerJoined, RemoteClock, StartingGame}
+import cardgame.model._
 import cats.effect.IO
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import JsonEncoder._
+import io.circe.generic.auto._
 
 class GameProcessorAuthenticationSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll{
 
@@ -19,6 +21,7 @@ class GameProcessorAuthenticationSpec extends AnyWordSpec with Matchers with Bef
     kpg.initialize(1024)
     kpg.generateKeyPair()
   }
+
 
   private val keyPair1 = generateKeyPair
   private val otherKey = generateKeyPair

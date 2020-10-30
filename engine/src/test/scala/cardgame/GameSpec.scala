@@ -2,7 +2,7 @@ package cardgame
 
 import java.net.URI
 import java.security.interfaces.RSAPublicKey
-import java.security.KeyPairGenerator
+import java.security.{KeyPair, KeyPairGenerator}
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -20,12 +20,16 @@ class GameSpec extends AnyWordSpec with Matchers {
     kpg.initialize(1024)
     kpg.generateKeyPair()
   }
-  private val keyPair1 = generateKeyPair
+  private val keyPair1: KeyPair = generateKeyPair
   private val keyPair2 = generateKeyPair
+  private val keyPair3 = generateKeyPair
   private def joinPlayers() = List(
     JoiningPlayer(PlayerId("123"), keyPair1.getPublic.asInstanceOf[RSAPublicKey]),
     JoiningPlayer(PlayerId("124"), keyPair2.getPublic.asInstanceOf[RSAPublicKey])
   )
+
+  implicit def toRSAPublicKey(keyPair: KeyPair): RSAPublicKey =
+    keyPair.getPublic.asInstanceOf[RSAPublicKey]
 
   val players = joinPlayers()
   val commands: LazyList[Action] =
@@ -121,9 +125,9 @@ class GameSpec extends AnyWordSpec with Matchers {
     val player2Cards = List(aCard, aCard, aCard)
     val player3Cards = List(aCard, aCard)
     val deckCards = List(aCard, aCard, aCard, aCard)
-    val player1 = PlayingPlayer(PlayerId("1"), player1Cards, NoGathering, 0)
-    val player2 = PlayingPlayer(PlayerId("2"), player2Cards, NoGathering, 0)
-    val player3 = PlayingPlayer(PlayerId("3"), player3Cards, NoGathering, 0)
+    val player1 = PlayingPlayer(PlayerId("1"), player1Cards, NoGathering, 0, keyPair1)
+    val player2 = PlayingPlayer(PlayerId("2"), player2Cards, NoGathering, 0, keyPair2)
+    val player3 = PlayingPlayer(PlayerId("3"), player3Cards, NoGathering, 0, keyPair3)
     val players = List(
       player1,
       player2,
@@ -312,8 +316,8 @@ class GameSpec extends AnyWordSpec with Matchers {
       val player1OtherCards = otherCards
       val player2OtherCards = otherCards
       lazy val playersWithGatheredCards = List(
-        PlayingPlayer(PlayerId("a"), List.empty, HiddenPile(deckCards.take(2).toSet ++ player1OtherCards), 0),
-        PlayingPlayer(PlayerId("b"), List.empty, HiddenPile(deckCards.takeRight(2).toSet ++ player2OtherCards), 0)
+        PlayingPlayer(PlayerId("a"), List.empty, HiddenPile(deckCards.take(2).toSet ++ player1OtherCards), 0, keyPair1),
+        PlayingPlayer(PlayerId("b"), List.empty, HiddenPile(deckCards.takeRight(2).toSet ++ player2OtherCards), 0, keyPair2)
       )
       val game = StartedGame(
         playersWithGatheredCards,
