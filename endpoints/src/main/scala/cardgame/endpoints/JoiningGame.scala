@@ -7,8 +7,7 @@ import sttp.model.StatusCode
 import sttp.tapir._
 import cardgame.json.circe._
 import sttp.tapir.json.circe._
-import sun.security.rsa.RSAPublicKeyImpl
-
+import cardgame.endpoints.codecs.rsa
 object JoiningGame {
 
   import codecs.ids._
@@ -22,8 +21,7 @@ object JoiningGame {
       .in(
         auth.bearer
           .map(
-            value =>
-              RSAPublicKeyImpl.newKey(Base64.getDecoder.decode(value))
+            rsa.fromString
           )(rsaKey =>
             Base64.getEncoder.encodeToString(rsaKey.getEncoded)
           )

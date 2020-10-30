@@ -5,12 +5,14 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import cardgame.model._
 import cardgame.engine.GameOps._
-import cardgame.processor.PlayerEventsReader.UserResponse
+import cardgame.processor.PlayerEventsReader.{AuthorisationTicket, UserResponse}
 import cats.Monoid
 import cats.effect.IO
 import cats.implicits.catsKernelStdMonoidForMap
 import cats.syntax.semigroup._
 import cats.derived._
+import io.circe.Encoder
+import io.circe.syntax._
 object GameProcessor {
 
   implicit val vectorClockLongMonoid: Monoid[Long] = Monoid.instance(0L, Math.max)
@@ -19,7 +21,7 @@ object GameProcessor {
   private final val ATOMIC_RECEIVE_AND_SEND = 2
 
 
-  def behavior(game: Game, randomizer: IO[Int], localClock: Long, remoteClock: RemoteClock): Behavior[Protocol] = Behaviors.setup {
+  def behavior(game: Game, randomizer: IO[Int], localClock: Long, remoteClock: RemoteClock)(implicit authEncoder: Encoder[Authorise]): Behavior[Protocol] = Behaviors.setup {
     ctx =>
       Behaviors.receiveMessage {
         case c: Command =>
@@ -27,8 +29,14 @@ object GameProcessor {
           val updateLocalClock = localClock + ATOMIC_RECEIVE_AND_SEND
 
           val (gameAffected, event) = game.action(c.action, randomizer, checkIdempotency)(remoteClock, c.remoteClock)
-          ctx.system.eventStream !
-            EventStream.Publish(UserResponse(ClockedResponse(event, newRemoteClock, updateLocalClock)))
+          val publishableEvent = event match {
+            case auth: AuthorisePlayer =>
+              val plainText = auth.authorise.asJson.noSpaces
+              AuthorisationTicket(auth.playerId, plainText, auth.signature, auth.publicKey)
+            case event =>
+              UserResponse(ClockedResponse(event, newRemoteClock, updateLocalClock))
+          }
+          ctx.system.eventStream ! EventStream.Publish(publishableEvent)
           c match {
             case rc: ReplyCommand =>
               rc.replyTo ! Right(ClockedResponse(event, newRemoteClock, updateLocalClock))

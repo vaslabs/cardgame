@@ -5,17 +5,19 @@ import java.util.UUID
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior, Scheduler}
-import cardgame.model.{ClockedResponse, DeckId, Game, GameId, JoinGame, JoiningPlayer, PlayerId, PlayingGameAction, RemoteClock, StartingGame}
+import cardgame.model.{Authorise, ClockedResponse, DeckId, Game, GameId, JoinGame, JoiningPlayer, PlayerId, PlayingGameAction, RemoteClock, StartingGame}
 import cats.effect.IO
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.util.Timeout
+import cardgame.processor.PlayerEventsReader.AuthorisationTicket
+import io.circe.Encoder
 
 import scala.concurrent.Future
 import scala.util.Random
 
 object ActiveGames {
 
-  def behavior(authToken: String): Behavior[Protocol] = Behaviors.receive {
+  def behavior(authToken: String)(implicit authEncoder: Encoder[Authorise]): Behavior[Protocol] = Behaviors.receive {
     case (ctx, CreateGame(replyTo, token)) =>
       replyTo ! Either.cond(token == authToken, {
         val gameId = UUID.randomUUID()
@@ -72,7 +74,14 @@ object ActiveGames {
 
       streamer ! PlayerEventsReader.UpdateStreamer(streamingActor)
 
+      Behaviors.same
 
+    case (ctx, AuthoriseReading(authorisationTicket)) =>
+      val eventStreamerName = s"event-reader-${authorisationTicket.player.value}"
+      val streamer = ctx.child(eventStreamerName).map(_.unsafeUpcast[PlayerEventsReader.Protocol])
+      streamer.foreach(
+        reader => reader ! authorisationTicket
+      )
       Behaviors.same
   }
 
@@ -123,6 +132,7 @@ object ActiveGames {
 
 
   case class StreamEventsFor(playerId: PlayerId, streamingActor: ActorRef[ClockedResponse]) extends Protocol
+  case class AuthoriseReading(authorisationTicket: AuthorisationTicket) extends Protocol
 
   object api {
 

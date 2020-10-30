@@ -32,7 +32,13 @@ sealed trait Player {
 
 case class JoiningPlayer(id: PlayerId, publicKey: RSAPublicKey) extends Player
 
-case class PlayingPlayer(id: PlayerId, hand: List[Card], gatheringPile: GatheringPile, points: Long) extends Player
+case class PlayingPlayer(
+    id: PlayerId,
+    hand: List[Card],
+    gatheringPile: GatheringPile,
+    points: Long,
+    publicKey: RSAPublicKey
+) extends Player
 
 case class DeadPlayer(id: PlayerId) extends Player
 
@@ -55,6 +61,7 @@ sealed trait Action
 sealed trait JoiningGameAction extends Action
 
 case class JoinGame(player: JoiningPlayer) extends JoiningGameAction
+case class Authorise(player: PlayerId, remoteClock: RemoteClock, serverClock: Long, signature: String) extends JoiningGameAction
 
 case class StartGame(deck: Deck) extends Action
 
@@ -208,6 +215,10 @@ case class DiceThrow(playerId: PlayerId, dice: List[Die]) extends Event
 case class ShuffledHand(playerId: PlayerId, hand: List[Card]) extends Event
 case class AddedToPile(playerId: PlayerId, cards: Set[VisibleCard]) extends Event
 case class GameRestarted(startedGame: StartedGame) extends Event
+case class AuthorisePlayer(authorise: Authorise, publicKey: RSAPublicKey) extends Event {
+  def playerId = authorise.player
+  def signature = authorise.signature
+}
 case class Die(sides: Int, result: Int)
 object InvalidAction {
   def apply(): InvalidAction = InvalidAction(None)

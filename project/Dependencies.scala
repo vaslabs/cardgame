@@ -75,11 +75,13 @@ object Dependencies {
         "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-akka-http"
       ).map(_ % Versions.tapir.core)
     }
+
+    val bouncyCastle = "org.bouncycastle" % "bcprov-jdk15on" % "1.66"
   }
 
   object Modules {
     import Libraries._
-    val endpoints = Seq(scalatest.core, tapir.core, tapir.circe) ++ circe.all
+    val endpoints = Seq(scalatest.core, tapir.core, tapir.circe, bouncyCastle) ++ circe.all
 
     val engine = Seq(scalatest.core, cats.core, cats.effect,  cats.kittens)
 

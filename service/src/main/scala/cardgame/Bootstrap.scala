@@ -26,6 +26,8 @@ object Bootstrap extends App {
 }
 
 object Guardian {
+  import cardgame.json.circe._
+  import io.circe.generic.auto._
   def behaviour: Behavior[Protocol] = Behaviors.setup { ctx =>
     val token = UUID.randomUUID().toString
     ctx.log.warn(s"Admin token is ${token}")
