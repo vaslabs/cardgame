@@ -10,15 +10,22 @@ object PlayerEventsReader {
 
   def behavior(playerId: PlayerId, replyTo: ActorRef[ClockedResponse]): Behavior[Protocol] = Behaviors.setup {
     ctx =>
-      Behaviors.receiveMessage {
-        case UserResponse(ClockedResponse(AuthorisePlayer(player), _, _)) if playerId == player =>
-          ctx.system.eventStream ! EventStream.Subscribe(ctx.self)
-          readingEvents(player, replyTo)
-        case _ =>
-          Behaviors.same
-      }
+      ctx.system.eventStream ! EventStream.Subscribe(ctx.self)
+      unauthorised(playerId, replyTo)
   }
 
+  private def unauthorised(playerId: PlayerId, replyTo: ActorRef[ClockedResponse]): Behavior[Protocol] =
+    Behaviors.receiveMessage {
+      case UserResponse(ClockedResponse(AuthorisePlayer(player), _, _)) if playerId == player =>
+        readingEvents(player, replyTo)
+      case UserResponse(ClockedResponse(AuthorisePlayer(_), _, _)) =>
+        Behaviors.same
+      case UserResponse(ClockedResponse(_, clock, serverClock)) =>
+        replyTo ! ClockedResponse(Unauthorised, clock, serverClock)
+        Behaviors.same
+      case _ =>
+        Behaviors.same
+    }
   private def readingEvents(id: PlayerId, replyTo: ActorRef[ClockedResponse]): Behavior[Protocol] = Behaviors.receiveMessage {
     case UserResponse(msg) =>
       replyTo ! personalise(msg, id)
@@ -32,15 +39,15 @@ object PlayerEventsReader {
   private def swapConnection(
                               id: PlayerId,
                               replyTo: ActorRef[ClockedResponse],
-                              swapConnectionTo: ActorRef[ClockedResponse]): Behavior[Protocol] = Behaviors.receive {
+                              swapConnectionTo: ActorRef[ClockedResponse]): Behavior[Protocol] = Behaviors.receiveMessage {
 
-    case (ctx, UserResponse(ClockedResponse(AuthorisePlayer(player), _, _))) if id == player =>
-      ctx.system.eventStream ! EventStream.Subscribe(ctx.self)
+    case UserResponse(ClockedResponse(AuthorisePlayer(player), _, _)) if id == player =>
       readingEvents(id, swapConnectionTo)
-    case (_, UserResponse(msg)) =>
+    case UserResponse(msg) =>
       replyTo ! personalise(msg, id)
+      swapConnectionTo ! ClockedResponse(Unauthorised, msg.clock, msg.serverClock)
       Behaviors.same
-    case (_, UpdateStreamer(streamer)) =>
+    case UpdateStreamer(streamer) =>
       swapConnection(id, replyTo, streamer)
   }
 

@@ -8,7 +8,6 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior, Scheduler}
 import akka.util.Timeout
 import cardgame.model._
-import cardgame.processor.PlayerEventsReader.AuthorisationTicket
 import cats.effect.IO
 
 import scala.concurrent.Future
@@ -75,13 +74,6 @@ object ActiveGames {
 
       Behaviors.same
 
-    case (ctx, AuthoriseReading(authorisationTicket)) =>
-      val eventStreamerName = s"event-reader-${authorisationTicket.player.value}"
-      val streamer = ctx.child(eventStreamerName).map(_.unsafeUpcast[PlayerEventsReader.Protocol])
-      streamer.foreach(
-        reader => reader ! authorisationTicket
-      )
-      Behaviors.same
   }
 
   private def gameProcessor(actorContext: ActorContext[_], gameId: GameId): Option[ActorRef[GameProcessor.Protocol]] =
@@ -131,7 +123,6 @@ object ActiveGames {
 
 
   case class StreamEventsFor(playerId: PlayerId, streamingActor: ActorRef[ClockedResponse]) extends Protocol
-  case class AuthoriseReading(authorisationTicket: AuthorisationTicket) extends Protocol
 
   object api {
 

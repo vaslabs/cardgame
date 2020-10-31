@@ -15,6 +15,7 @@ import cardgame.processor.ActiveGames
 import cardgame.routes.Routes
 
 import scala.io.StdIn
+import scala.util.Try
 
 object Bootstrap extends App {
 
@@ -59,10 +60,13 @@ object Guardian {
 
 
   private def verifySignature(plainText: String, userSignature: String, publicKey: RSAPublicKey): Boolean = {
-    val signature = Signature.getInstance("SHA256withRSA")
-    signature.initVerify(publicKey)
-    signature.update(plainText.getBytes(StandardCharsets.UTF_8))
-    signature.verify(userSignature.getBytes(StandardCharsets.UTF_8))
+    val testSignature = Try[Boolean] {
+      val signature = Signature.getInstance("SHA256withRSA")
+      signature.initVerify(publicKey)
+      signature.update(plainText.getBytes(StandardCharsets.UTF_8))
+      signature.verify(userSignature.getBytes(StandardCharsets.UTF_8))
+    }
+    testSignature.getOrElse(false)
   }
   import io.circe.syntax._
   import cardgame.json.circe._

@@ -74,6 +74,7 @@ sealed trait PlayingGameAction extends Action {
 }
 
 case class ClockedAction(action: Action, vectorClock: Map[String, Long], serverClock: Long, signature: String)
+case class AdminAction(action: Action)
 
 sealed trait MustHaveTurnAction extends PlayingGameAction
 sealed trait FreeAction extends PlayingGameAction
@@ -204,6 +205,7 @@ case class PlayerJoined(id: PlayerId) extends Event
 case class GameStarted(startingPlayer: PlayerId) extends Event
 case class NextPlayer(player: PlayerId) extends Event
 case class GotCard(playerId: PlayerId, card: Card) extends Event
+case object Unauthorised extends Event
 case class BorrowedCard(card: Card, playerId: PlayerId) extends Event
 case class ReturnedCard(card: CardId, index: Int) extends Event
 case class BackToDeck(card: Card, index: Int) extends Event

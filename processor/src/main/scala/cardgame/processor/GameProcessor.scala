@@ -23,6 +23,13 @@ object GameProcessor {
   def behavior(game: Game, randomizer: IO[Int], localClock: Long, remoteClockCopy: RemoteClock)(validSignature: (Game, ClockedAction) => Boolean): Behavior[Protocol] = Behaviors.setup {
     ctx =>
       Behaviors.receiveMessage {
+        case ac: AdminCommand =>
+          val updateLocalClock = localClock + ATOMIC_RECEIVE_AND_SEND
+
+          val (gameAffected, event) = game.action(ac.action, randomizer, _ => (_, _) => true)(remoteClockCopy, remoteClockCopy)
+          ctx.system.eventStream ! EventStream.Publish(UserResponse(ClockedResponse(event, remoteClockCopy, updateLocalClock)))
+          behavior(gameAffected, randomizer, updateLocalClock, remoteClockCopy)(validSignature)
+
         case c: Command if validSignature(game, c.action) =>
 
           val remoteClock = RemoteClock.of(c.action.vectorClock)
@@ -77,6 +84,8 @@ object GameProcessor {
   ) extends ReplyCommand
 
   case class FireAndForgetCommand(action: ClockedAction) extends Command
+
+  case class AdminCommand(action: Action) extends Protocol
 
   sealed trait Query extends Protocol {
     def replyTo: ActorRef[Either[Unit, Game]]
