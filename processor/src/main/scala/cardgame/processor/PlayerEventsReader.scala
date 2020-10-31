@@ -11,6 +11,7 @@ object PlayerEventsReader {
   def behavior(playerId: PlayerId, replyTo: ActorRef[ClockedResponse]): Behavior[Protocol] = Behaviors.setup {
     ctx =>
       ctx.system.eventStream ! EventStream.Subscribe(ctx.self)
+      replyTo ! ClockedResponse(Unauthorised, RemoteClock.zero, 0L)
       unauthorised(playerId, replyTo)
   }
 

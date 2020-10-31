@@ -4,7 +4,7 @@ import java.net.URI
 import java.security.interfaces.RSAPublicKey
 import java.util.Base64
 
-import cardgame.model.{CardId, ClockedAction, ClockedResponse, DeckId, Event, Game, HiddenCard, PlayerId, PlayingGameAction}
+import cardgame.model.{Action, CardId, ClockedAction, ClockedResponse, DeckId, Event, Game, HiddenCard, PlayerId}
 import io.circe.{Codec, Decoder, Encoder, Json, KeyDecoder, KeyEncoder}
 import io.circe.generic.auto._
 import io.circe.generic.semiauto._
@@ -51,7 +51,7 @@ object circe {
         Json.obj("id" -> hc.id.asJson)
     }
 
-  implicit val playingGameActionCodec: Codec[PlayingGameAction] =
+  implicit val playingGameActionCodec: Codec[Action] =
     deriveCodec
 
   implicit val clockedResponseEncoder: Encoder[ClockedResponse] = Encoder.instance {
@@ -86,7 +86,7 @@ object circe {
         hcursor.downField("vectorClock").as[Map[String, Long]].orElse(Right(Map.empty[String, Long])),
         hcursor.downField("serverClock").as[Long].orElse(Right(0L)),
         hcursor.downField("signature").as[String],
-        hcursor.as[PlayingGameAction]
+        hcursor.as[Action]
       ).mapN(
         (clock, serverClock, signature, action) => ClockedAction(action, clock, serverClock, signature)
       )
