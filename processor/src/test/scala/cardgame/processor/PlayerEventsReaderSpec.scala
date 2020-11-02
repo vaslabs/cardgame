@@ -30,6 +30,8 @@ class PlayerEventsReaderSpec extends AnyWordSpec with Matchers with BeforeAndAft
     }
     "not forward game message if another player authenticates" in {
       actorTestKit.system.eventStream ! Publish(UserResponse(ClockedResponse(AuthorisePlayer(PlayerId("other")), RemoteClock.zero, 0L)))
+      streamer.expectMessage(ClockedResponse(Unauthorised, RemoteClock.zero, 0L))
+
       actorTestKit.system.eventStream ! Publish(UserResponse(ClockedResponse(event, RemoteClock.zero, 0L)))
       streamer.expectMessage(ClockedResponse(Unauthorised, RemoteClock.zero, 0L))
     }
