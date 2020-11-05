@@ -2,9 +2,9 @@ package cardgame
 
 import java.util.UUID
 
-import akka.actor.typed.{ActorRef, ActorSystem, Behavior, PostStop}
-import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.{ActorRef, ActorSystem, Behavior, PostStop}
 import akka.http.scaladsl.Http
 import akka.stream.Materializer
 import cardgame.processor.ActiveGames
@@ -30,7 +30,7 @@ object Guardian {
     val token = UUID.randomUUID().toString
     ctx.log.warn(s"Admin token is ${token}")
     val activeGames: ActorRef[ActiveGames.Protocol] =
-      ctx.spawn(ActiveGames.behavior(token), "ActiveGames")
+      ctx.spawn(ActiveGames.behavior(token)(events.validateSignature), "ActiveGames")
 
     implicit val materializer = Materializer(ctx)
     implicit val system = ctx.system.toClassic
@@ -51,4 +51,7 @@ object Guardian {
   }
 
   sealed trait Protocol
+
+
+
 }

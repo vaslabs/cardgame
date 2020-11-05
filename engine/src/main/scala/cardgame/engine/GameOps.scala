@@ -10,10 +10,30 @@ object GameOps {
 
     def join(player: JoiningPlayer): (Game, Event) = {
       game match {
-        case sg: StartingGame =>
+        case sg: StartingGame if !sg.playersJoined.exists(_.id == player.id) =>
+          sg.join(player)
+        case sg: StartingGame if
+          (sg.playersJoined.exists(_.id == player.id) &&
+            sg.playersJoined.exists(_.publicKey.getEncoded sameElements player.publicKey.getEncoded)) =>
           sg.join(player)
         case _ =>
           game -> InvalidAction(player.id)
+      }
+    }
+
+    def authorise(authorisationTicket: Authorise): (Game, Event) = {
+
+      game match {
+        case sg: StartingGame =>
+          game -> sg.playersJoined.find(_.id == authorisationTicket.playerId).map(
+            player => AuthorisePlayer(player.id)
+          ).getOrElse(InvalidAction(authorisationTicket.playerId))
+        case StartedGame(players, _, _, _, _, _) =>
+          game -> players.find(_.id == authorisationTicket.playerId).map(
+            player => AuthorisePlayer(player.id)
+          ).getOrElse(InvalidAction(authorisationTicket.playerId))
+        case _ =>
+          game -> InvalidAction(authorisationTicket.playerId)
       }
     }
 
@@ -49,10 +69,13 @@ object GameOps {
       gameAction match {
         case jg: JoinGame =>
           join(jg.player)
+        case authorisationTicket: Authorise =>
+          authorise(authorisationTicket)
         case EndGame =>
           end
         case StartGame(deck) =>
           start(deck, randomizer)
+
         case p: PlayingGameAction =>
           if (isIdempotent(p.player)(oldClock, newClock)) {
             game match {

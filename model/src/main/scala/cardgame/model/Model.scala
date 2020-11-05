@@ -1,6 +1,7 @@
 package cardgame.model
 
 import java.net.URI
+import java.security.interfaces.RSAPublicKey
 import java.util.UUID
 
 case class DeckId(value: UUID)
@@ -29,9 +30,15 @@ sealed trait Player {
   def id: PlayerId
 }
 
-case class JoiningPlayer(id: PlayerId) extends Player
+case class JoiningPlayer(id: PlayerId, publicKey: RSAPublicKey) extends Player
 
-case class PlayingPlayer(id: PlayerId, hand: List[Card], gatheringPile: GatheringPile, points: Long) extends Player
+case class PlayingPlayer(
+    id: PlayerId,
+    hand: List[Card],
+    gatheringPile: GatheringPile,
+    points: Long,
+    publicKey: RSAPublicKey
+) extends Player
 
 case class DeadPlayer(id: PlayerId) extends Player
 
@@ -51,9 +58,14 @@ case class HiddenPile(cards: Set[HiddenCard]) extends GatheringPile {
 
 sealed trait Action
 
-sealed trait JoiningGameAction extends Action
+sealed trait JoiningGameAction extends Action {
+  def playerId: PlayerId
+}
 
-case class JoinGame(player: JoiningPlayer) extends JoiningGameAction
+case class JoinGame(player: JoiningPlayer) extends JoiningGameAction {
+  def playerId = player.id
+}
+case class Authorise(playerId: PlayerId) extends JoiningGameAction
 
 case class StartGame(deck: Deck) extends Action
 
@@ -61,7 +73,8 @@ sealed trait PlayingGameAction extends Action {
   def player: PlayerId
 }
 
-case class ClockedAction(action: PlayingGameAction, vectorClock: Map[String, Long], serverClock: Long)
+case class ClockedAction(action: Action, vectorClock: Map[String, Long], serverClock: Long, signature: String)
+case class AdminAction(action: Action)
 
 sealed trait MustHaveTurnAction extends PlayingGameAction
 sealed trait FreeAction extends PlayingGameAction
@@ -192,6 +205,7 @@ case class PlayerJoined(id: PlayerId) extends Event
 case class GameStarted(startingPlayer: PlayerId) extends Event
 case class NextPlayer(player: PlayerId) extends Event
 case class GotCard(playerId: PlayerId, card: Card) extends Event
+case object Unauthorised extends Event
 case class BorrowedCard(card: Card, playerId: PlayerId) extends Event
 case class ReturnedCard(card: CardId, index: Int) extends Event
 case class BackToDeck(card: Card, index: Int) extends Event
@@ -207,6 +221,8 @@ case class DiceThrow(playerId: PlayerId, dice: List[Die]) extends Event
 case class ShuffledHand(playerId: PlayerId, hand: List[Card]) extends Event
 case class AddedToPile(playerId: PlayerId, cards: Set[VisibleCard]) extends Event
 case class GameRestarted(startedGame: StartedGame) extends Event
+case class AuthorisePlayer(player: PlayerId) extends Event
+
 case class Die(sides: Int, result: Int)
 object InvalidAction {
   def apply(): InvalidAction = InvalidAction(None)
@@ -227,7 +243,7 @@ object ClockedResponse {
 }
 
 case class RemoteClock(vectorClock: Map[PlayerId, Long]) {
-  private[model] def showMap: Map[String, Long] = vectorClock.map {
+  def showMap: Map[String, Long] = vectorClock.map {
     case (key, value) => key.value -> value
   }
 }

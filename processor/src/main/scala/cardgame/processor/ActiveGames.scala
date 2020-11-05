@@ -1,27 +1,28 @@
 package cardgame.processor
 
+import java.security.interfaces.RSAPublicKey
 import java.util.UUID
 
+import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior, Scheduler}
-import cardgame.model.{ClockedResponse, DeckId, Game, GameId, JoinGame, JoiningPlayer, PlayerId, PlayingGameAction, RemoteClock, StartingGame}
-import cats.effect.IO
-import akka.actor.typed.scaladsl.AskPattern._
 import akka.util.Timeout
+import cardgame.model._
+import cats.effect.IO
 
 import scala.concurrent.Future
 import scala.util.Random
 
 object ActiveGames {
 
-  def behavior(authToken: String): Behavior[Protocol] = Behaviors.receive {
+  def behavior(authToken: String)(validateSignature: (Game, ClockedAction) => Boolean): Behavior[Protocol] = Behaviors.receive {
     case (ctx, CreateGame(replyTo, token)) =>
       replyTo ! Either.cond(token == authToken, {
         val gameId = UUID.randomUUID()
         val randomizer = new Random(gameId.getMostSignificantBits)
         val intRandomizer = IO.delay(randomizer.nextInt())
         ctx.spawn(
-          GameProcessor.behavior(StartingGame(List.empty), intRandomizer, 0L, RemoteClock(Map.empty)),
+          GameProcessor.behavior(StartingGame(List.empty), intRandomizer, 0L, RemoteClock(Map.empty))(validateSignature),
           gameId.toString
         )
         GameId(gameId)
@@ -34,9 +35,9 @@ object ActiveGames {
         .map(_ ! GameProcessor.Get(playerId, replyTo))
         .getOrElse(replyTo ! Left(()))
       Behaviors.same
-    case (ctx, JoinExistingGame(gameId, playerId, remoteClock, replyTo)) =>
+    case (ctx, JoinExistingGame(gameId, playerId, signature, remoteClock, publicKey, replyTo)) =>
       gameProcessor(ctx, gameId).map(
-        _ ! GameProcessor.RunCommand(replyTo, JoinGame(JoiningPlayer(playerId)), remoteClock)
+        _ ! GameProcessor.RunCommand(replyTo, ClockedAction(JoinGame(JoiningPlayer(playerId, publicKey)), remoteClock.showMap, 0L, signature))
       ).getOrElse(replyTo ! Left(()))
       Behaviors.same
     case (ctx, LoadGame(token, gameId, deckId, server, replyTo)) =>
@@ -56,9 +57,9 @@ object ActiveGames {
       )
       Behaviors.same
 
-    case (ctx, DoGameAction(gameId, action, remoteClock)) =>
+    case (ctx, DoGameAction(gameId, action)) =>
       gameProcessor(ctx, gameId).foreach(
-        _ ! GameProcessor.FireAndForgetCommand(action, remoteClock)
+        _ ! GameProcessor.FireAndForgetCommand(action)
       )
       Behaviors.same
     case (_, Ignore) =>
@@ -71,8 +72,8 @@ object ActiveGames {
 
       streamer ! PlayerEventsReader.UpdateStreamer(streamingActor)
 
-
       Behaviors.same
+
   }
 
   private def gameProcessor(actorContext: ActorContext[_], gameId: GameId): Option[ActorRef[GameProcessor.Protocol]] =
@@ -101,7 +102,9 @@ object ActiveGames {
   case class JoinExistingGame(
     gameId: GameId,
     playerId: PlayerId,
+    signature: String,
     remoteClock: RemoteClock,
+    publicKey: RSAPublicKey,
     replyTo: ActorRef[Either[Unit, ClockedResponse]]
   ) extends Protocol
 
@@ -114,9 +117,8 @@ object ActiveGames {
   ) extends AdminControl
 
   case class DoGameAction(
-                          id: GameId,
-                          action: PlayingGameAction,
-                          remoteClock: RemoteClock
+        id: GameId,
+        action: ClockedAction
   ) extends Protocol
 
 
@@ -137,16 +139,16 @@ object ActiveGames {
                                   timeout: Timeout, scheduler: Scheduler): Future[GetGameRes] =
         actorRef ? (GetGameStatus(gameId, playerId, _))
 
-      def joinGame(gameId: GameId, playerId: PlayerId, remoteClock: RemoteClock)(implicit
+      def joinGame(gameId: GameId, playerId: PlayerId, signature: String, remoteClock: RemoteClock, publicKey: RSAPublicKey)(implicit
                                                        timeout: Timeout, scheduler: Scheduler): Future[ActionRes] =
-        actorRef ? (JoinExistingGame(gameId, playerId, remoteClock, _))
+        actorRef ? (JoinExistingGame(gameId, playerId, signature, remoteClock, publicKey, _))
 
       def startGame(token: String, gameId: GameId, deckId: DeckId, server: String)(implicit
                     timeout: Timeout, scheduler: Scheduler): Future[Either[Unit, Unit]] =
         actorRef ? (LoadGame(token, gameId, deckId, server, _))
 
-      def action(gameId: GameId, action: PlayingGameAction, remoteClock: RemoteClock): Unit = {
-        actorRef ! (DoGameAction(gameId, action, remoteClock))
+      def action(gameId: GameId, action: ClockedAction): Unit = {
+        actorRef ! (DoGameAction(gameId, action))
       }
     }
 

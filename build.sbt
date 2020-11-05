@@ -57,7 +57,8 @@ lazy val packageSettings = Seq(
     case (file, name) =>
       file -> s"decks/$name"
   },
-  maintainer := "vaslabsco@gmail.com"
+  maintainer := "vaslabsco@gmail.com",
+  packageName := "cardgame-simulator"
 )
 
 

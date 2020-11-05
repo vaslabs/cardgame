@@ -31,7 +31,7 @@ object ShuffleGameAlgorithm {
         case (id, player) =>
           player.reduce[PlayingPlayer] {
             case (p1, p2) =>
-              PlayingPlayer(id, p1.hand ++ p2.hand, p1.gatheringPile, p1.points)
+              PlayingPlayer(id, p1.hand ++ p2.hand, p1.gatheringPile, p1.points, p1.publicKey)
           }
       }.toList
     }

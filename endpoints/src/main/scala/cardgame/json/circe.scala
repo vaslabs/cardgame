@@ -1,13 +1,16 @@
 package cardgame.json
 
 import java.net.URI
+import java.security.interfaces.RSAPublicKey
+import java.util.Base64
 
-import cardgame.model.{CardId, ClockedAction, ClockedResponse, DeckId, Event, Game, HiddenCard, PlayerId, PlayingGameAction}
+import cardgame.model.{Action, CardId, ClockedAction, ClockedResponse, DeckId, Event, Game, HiddenCard, PlayerId}
 import io.circe.{Codec, Decoder, Encoder, Json, KeyDecoder, KeyEncoder}
 import io.circe.generic.auto._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
 import cats.implicits._
+import sun.security.rsa.RSAPublicKeyImpl
 
 import scala.util.Try
 object circe {
@@ -29,6 +32,16 @@ object circe {
   implicit val gameEncoder: Encoder[Game] = deriveEncoder
   implicit val gameDecoder: Decoder[Game] = deriveDecoder
 
+  implicit val rsaPublicKeyEncoder: Encoder[RSAPublicKey] = Encoder.encodeString.contramap {
+    rsaPublicKey =>
+      Base64.getEncoder.encodeToString(rsaPublicKey.getEncoded)
+  }
+
+  implicit val rsaPublicKeyDecoder: Decoder[RSAPublicKey] = Decoder.decodeString.emapTry {
+    value =>
+      Try(RSAPublicKeyImpl.newKey(Base64.getDecoder.decode(value)))
+  }
+
   implicit val playerIdKeyEncoder: KeyEncoder[PlayerId] = KeyEncoder.encodeKeyString.contramap(_.value)
   implicit val playerIdKeyDecoder: KeyDecoder[PlayerId] = KeyDecoder.decodeKeyString.map(PlayerId)
 
@@ -38,7 +51,7 @@ object circe {
         Json.obj("id" -> hc.id.asJson)
     }
 
-  implicit val playingGameActionCodec: Codec[PlayingGameAction] =
+  implicit val playingGameActionCodec: Codec[Action] =
     deriveCodec
 
   implicit val clockedResponseEncoder: Encoder[ClockedResponse] = Encoder.instance {
@@ -72,9 +85,10 @@ object circe {
       (
         hcursor.downField("vectorClock").as[Map[String, Long]].orElse(Right(Map.empty[String, Long])),
         hcursor.downField("serverClock").as[Long].orElse(Right(0L)),
-        hcursor.as[PlayingGameAction]
+        hcursor.downField("signature").as[String],
+        hcursor.as[Action]
       ).mapN(
-        (clock, serverClock, action) => ClockedAction(action, clock, serverClock)
+        (clock, serverClock, signature, action) => ClockedAction(action, clock, serverClock, signature)
       )
   }
 }

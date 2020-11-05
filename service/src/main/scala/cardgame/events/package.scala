@@ -1,17 +1,19 @@
 package cardgame
 
+import java.nio.charset.StandardCharsets
+import java.security.Signature
+import java.security.interfaces.RSAPublicKey
+
 import akka.NotUsed
 import akka.actor.typed.ActorRef
-import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.Source
 import akka.stream.typed.scaladsl.ActorSource
-import cardgame.json.circe._
-import cardgame.model.{ClockedResponse, GameCompleted, PlayerId}
+import cardgame.model.{ClockedAction, ClockedResponse, Game, GameCompleted, JoiningGameAction, PlayerId, PlayingGameAction, StartedGame, StartingGame}
 import cardgame.processor.ActiveGames
-import io.circe.syntax._
+import org.bouncycastle.util.encoders.Hex
 
-import scala.concurrent.duration._
+import scala.util.Try
 
 package object events {
 
@@ -30,13 +32,32 @@ package object events {
     }
   }
 
+  private def verifySignature(plainText: String, userSignature: String, publicKey: RSAPublicKey): Boolean = {
+    val testSignature = Try[Boolean] {
+      val signature = Signature.getInstance("SHA256withRSA")
+      signature.initVerify(publicKey)
+      signature.update(plainText.getBytes(StandardCharsets.UTF_8))
+      signature.verify(Hex.decode(userSignature))
+    }
+    testSignature.getOrElse(false)
+  }
+  import io.circe.syntax._
+  import cardgame.json.circe._
 
-
-  def toSse(source: Source[ClockedResponse, NotUsed]): Source[ServerSentEvent, NotUsed] =
-    source.map(
-      _.asJson.noSpaces
-    ).map(
-      ServerSentEvent(_, "message")
-    ).keepAlive(5 seconds, () => ServerSentEvent.heartbeat)
-
+  def validateSignature(game: Game, action: ClockedAction): Boolean = {
+    val plainText = {
+      action.asJson.mapObject(_.filterKeys(key => key != "signature")).noSpaces
+    }
+    val verify = (game, action.action) match {
+      case (sg: StartedGame, a: PlayingGameAction) =>
+        sg.players.find(_.id == a.player).exists(p => verifySignature(plainText, action.signature, p.publicKey))
+      case (sg: StartingGame, a: JoiningGameAction) =>
+        sg.playersJoined.find(_.id == a.playerId).exists(
+          p => verifySignature(plainText, action.signature, p.publicKey)
+        )
+      case _ =>
+        true
+    }
+    verify
+  }
 }

@@ -11,15 +11,45 @@ object PlayerEventsReader {
   def behavior(playerId: PlayerId, replyTo: ActorRef[ClockedResponse]): Behavior[Protocol] = Behaviors.setup {
     ctx =>
       ctx.system.eventStream ! EventStream.Subscribe(ctx.self)
-      readingEvents(playerId, replyTo)
+      replyTo ! ClockedResponse(Unauthorised, RemoteClock.zero, 0L)
+      unauthorised(playerId, replyTo)
   }
 
+  private def unauthorised(playerId: PlayerId, replyTo: ActorRef[ClockedResponse]): Behavior[Protocol] =
+    Behaviors.receiveMessage {
+      case UserResponse(ClockedResponse(AuthorisePlayer(player), _, _)) if playerId == player =>
+        readingEvents(player, replyTo)
+      case UserResponse(ClockedResponse(AuthorisePlayer(_), _, _)) =>
+        Behaviors.same
+      case UserResponse(ClockedResponse(_, clock, serverClock)) =>
+        replyTo ! ClockedResponse(Unauthorised, clock, serverClock)
+        Behaviors.same
+      case _ =>
+        Behaviors.same
+    }
   private def readingEvents(id: PlayerId, replyTo: ActorRef[ClockedResponse]): Behavior[Protocol] = Behaviors.receiveMessage {
     case UserResponse(msg) =>
       replyTo ! personalise(msg, id)
       Behaviors.same
     case UpdateStreamer(streamer) =>
-      readingEvents(id, streamer)
+      swapConnection(id, replyTo, streamer)
+    case _ =>
+      Behaviors.same
+  }
+
+  private def swapConnection(
+                              id: PlayerId,
+                              replyTo: ActorRef[ClockedResponse],
+                              swapConnectionTo: ActorRef[ClockedResponse]): Behavior[Protocol] = Behaviors.receiveMessage {
+
+    case UserResponse(ClockedResponse(AuthorisePlayer(player), _, _)) if id == player =>
+      readingEvents(id, swapConnectionTo)
+    case UserResponse(msg) =>
+      replyTo ! personalise(msg, id)
+      swapConnectionTo ! ClockedResponse(Unauthorised, msg.clock, msg.serverClock)
+      Behaviors.same
+    case UpdateStreamer(streamer) =>
+      swapConnection(id, replyTo, streamer)
   }
 
   private def personalise(clockedResponse: ClockedResponse, playerId: PlayerId): ClockedResponse = {
@@ -74,6 +104,7 @@ object PlayerEventsReader {
   sealed trait Protocol
   case class UserResponse(clockedResponse: ClockedResponse) extends Protocol
   case class UpdateStreamer(streamer: ActorRef[ClockedResponse]) extends Protocol
+  case class AuthorisationTicket(player: PlayerId) extends Protocol
 
 
 }

@@ -21,7 +21,7 @@ object StartingGameOps {
               deck,
               players.map(j =>
                 PlayingPlayer(
-                  j.id, List.empty, gatheringPile(deck.startingRules.gatheringPile), 0
+                  j.id, List.empty, gatheringPile(deck.startingRules.gatheringPile), 0, j.publicKey
                 )
               )
             )

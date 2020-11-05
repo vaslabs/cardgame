@@ -11,7 +11,6 @@ object Actions {
   import schema.vector_clock._
 
 
-
   val player =
     endpoint.in("action" / path[GameId])
     .in(jsonBody[ClockedAction])

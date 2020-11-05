@@ -6,15 +6,15 @@ import java.util.UUID
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
+import cardgame.model._
+import cardgame.processor.GameProcessor.AdminCommand
 import cardgame.processor.config.json._
-import cardgame.model.{CardId, Deck, DeckId, HiddenCard, PointCounting, RemoteClock, StartGame, StartingRules}
-import cardgame.processor.GameProcessor.FireAndForgetCommand
 import cats.effect.{IO, Resource}
+import cats.implicits._
 import io.circe.Decoder
+import io.circe.parser._
 
 import scala.io.Source
-import io.circe.parser._
-import cats.implicits._
 object GameLoader {
 
   def ephemeralBehaviour(
@@ -27,7 +27,7 @@ object GameLoader {
       ctx.self ! DeckReady(loadDeck(deckId, server))
       Behaviors.receiveMessage {
         case DeckReady(deck) =>
-          game ! FireAndForgetCommand(StartGame(deck), RemoteClock.zero)
+          game ! AdminCommand(StartGame(deck))
           replyTo ! Right(())
           Behaviors.stopped
       }

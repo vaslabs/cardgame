@@ -37,7 +37,7 @@ class Routes(activeGames: ActorRef[ActiveGames.Protocol])(implicit scheduler: Sc
   }
 
   val startingGame =  JoiningGame.joinPlayer.toRoute {
-      case (gameId, playerId) => activeGames.joinGame(gameId, playerId, RemoteClock.zero)
+      case (gameId, playerId, publicKey) => activeGames.joinGame(gameId, playerId, "", RemoteClock.zero, publicKey)
     } ~ View.gameStatus.toRoute {
       case (gameId, playerId) => activeGames.getGame(gameId, playerId)
     } ~ get {
@@ -54,7 +54,7 @@ class Routes(activeGames: ActorRef[ActiveGames.Protocol])(implicit scheduler: Sc
   def gameActionsFlow(gameId: GameId, playerId: PlayerId): Flow[Message, Message, Any] = {
     val source = eventSource(playerId, activeGames).map(_.asJson.noSpaces).map(TextMessage.apply)
     val sink: Sink[Message, Any] = ActorSink.actorRef[ActiveGames.Protocol](activeGames, Ignore, _ => Ignore).contramap[ClockedAction](
-      ca => DoGameAction(gameId, ca.action, RemoteClock.of(ca.vectorClock))
+      ca => DoGameAction(gameId, ca)
     ).contramap[Message](extractClockedAction)
 
     Flow.fromSinkAndSource(sink, source)
