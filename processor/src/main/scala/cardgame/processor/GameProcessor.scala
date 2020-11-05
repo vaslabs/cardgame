@@ -30,7 +30,7 @@ object GameProcessor {
           ctx.system.eventStream ! EventStream.Publish(UserResponse(ClockedResponse(event, remoteClockCopy, updateLocalClock)))
           behavior(gameAffected, randomizer, updateLocalClock, remoteClockCopy)(validSignature)
 
-        case c: Command if validSignature(game, c.action) =>
+        case c: Command if c.action.action.isInstanceOf[JoiningGameAction] || validSignature(game, c.action) =>
 
           val remoteClock = RemoteClock.of(c.action.vectorClock)
           val newRemoteClock = remoteClockCopy |+| remoteClock
