@@ -39,7 +39,7 @@ class Routes(activeGames: ActorRef[ActiveGames.Protocol])(implicit scheduler: Sc
   val startingGame =  JoiningGame.joinPlayer.toRoute {
       case (gameId, ClockedAction(JoinGame(player), vectorClock, _, signature)) =>
         activeGames.joinGame(gameId, player.id, signature, RemoteClock.of(vectorClock), player.publicKey)
-      case (gameId, action) =>
+      case _ =>
         Future.successful(Left(()))
     } ~ View.gameStatus.toRoute {
       case (gameId, playerId) => activeGames.getGame(gameId, playerId)
