@@ -68,7 +68,10 @@ object GameOps {
     ): (Game, Event) = {
       gameAction match {
         case jg: JoinGame =>
-          join(jg.player)
+          if (isIdempotent(jg.player.id)(oldClock, newClock))
+            join(jg.player)
+          else
+            game -> InvalidAction(jg.playerId)
         case authorisationTicket: Authorise =>
           authorise(authorisationTicket)
         case EndGame =>

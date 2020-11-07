@@ -61,12 +61,26 @@ class GameProcessorAuthenticationSpec extends AnyWordSpec with Matchers with Bef
       userProbe.expectMessageType[Right[Unit, ClockedResponse]].value.event mustBe InvalidAction(joiningPlayer)
     }
 
-    "a player claiming the same public key is accepted" in {
+    "a replay of player successful join is rejected" in {
       gameProcessor ! GameProcessor.RunCommand(
         userProbe.ref,
         ClockedAction(
           JoinGame(JoiningPlayer(joiningPlayer, keyPair1.getPublic.asInstanceOf[RSAPublicKey])),
           Map("player1" -> 1),
+          0L,
+          "",
+        )
+      )
+
+      userProbe.expectMessageType[Right[Unit, ClockedResponse]].value.event mustBe InvalidAction(joiningPlayer)
+    }
+
+    "a player can rejoin with an updated logical timestamp" in {
+      gameProcessor ! GameProcessor.RunCommand(
+        userProbe.ref,
+        ClockedAction(
+          JoinGame(JoiningPlayer(joiningPlayer, keyPair1.getPublic.asInstanceOf[RSAPublicKey])),
+          Map("player1" -> 2),
           0L,
           "",
         )
