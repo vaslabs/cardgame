@@ -34,7 +34,7 @@ class VerifySignatureSpec extends AnyFlatSpec with Matchers {
         action
       )
     } mustBe Right(true)
-
   }
+
 
 }

@@ -46,7 +46,7 @@ lazy val service = (project in file("service"))
 
 lazy val dockerSettings = Seq(
   (packageName in Docker) := "cardgame-generator",
-  dockerBaseImage := "openjdk:14-jdk-alpine3.10",
+  dockerBaseImage := "opeNnjdk:14-jdk-alpine3.10",
   dockerUsername := Some("vaslabs"),
   dockerExposedPorts := List(8080)
 )

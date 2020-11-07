@@ -264,7 +264,7 @@ object StartedGameOps {
         )
     }
 
-    private def grabCards(playerId: PlayerId, cardsToGrab: Set[CardId]): (Game, Event) = game match {
+    private def grabCards(playerId: PlayerId, cardsToGrab: List[CardId]): (Game, Event) = game match {
       case sg @ StartedGame(players, _, current, _, _, discardPile) =>
         ifHasTurn(
           players,

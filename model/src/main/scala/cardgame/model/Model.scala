@@ -94,7 +94,7 @@ case class Leave(player: PlayerId) extends MustHaveTurnAction
 case class RecoverCard(player: PlayerId, cardId: CardId) extends MustHaveTurnAction
 case class EndTurn(player: PlayerId) extends MustHaveTurnAction
 case class ThrowDice(player: PlayerId, numberOfDice: Int, sides: Int) extends MustHaveTurnAction
-case class GrabCards(player: PlayerId, cards: Set[CardId]) extends MustHaveTurnAction
+case class GrabCards(player: PlayerId, cards: List[CardId]) extends MustHaveTurnAction
 case class ShuffleHand(player: PlayerId) extends FreeAction
 case class RestartGame(player: PlayerId) extends MustHaveTurnAction
 

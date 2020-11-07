@@ -283,8 +283,8 @@ class GameSpec extends AnyWordSpec with Matchers {
           DrawCard(player1.id),
           PlayCard(firstCard.id, player1.id),
           PlayCard(secondCard.id, player1.id),
-          GrabCards(players.head.id, Set(firstCard, secondCard).map(_.id)),
-          GrabCards(players.head.id, Set(firstCard, secondCard).map(_.id))
+          GrabCards(players.head.id, List(firstCard, secondCard).map(_.id)),
+          GrabCards(players.head.id, List(firstCard, secondCard).map(_.id))
         )
         cardgame.GameState(commands, game, randomizer).start.toList mustBe List(
           GotCard(player1.id, firstCard),
