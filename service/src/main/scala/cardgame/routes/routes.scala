@@ -9,10 +9,10 @@ import akka.http.scaladsl.server.Directives._
 import akka.stream.scaladsl.{Flow, Sink}
 import akka.stream.typed.scaladsl.ActorSink
 import akka.util.Timeout
-import cardgame.endpoints._
+import cardgame.endpoints.{JoiningGame, _}
 import cardgame.events._
 import cardgame.json.circe._
-import cardgame.model.{ClockedAction, GameId, PlayerId, RemoteClock}
+import cardgame.model._
 import cardgame.processor.ActiveGames
 import cardgame.processor.ActiveGames.api._
 import cardgame.processor.ActiveGames.{DoGameAction, Ignore}
@@ -21,13 +21,13 @@ import io.circe.parser._
 import io.circe.syntax._
 import sttp.tapir.server.akkahttp._
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
 class Routes(activeGames: ActorRef[ActiveGames.Protocol])(implicit scheduler: Scheduler) {
 
   implicit val timeout = Timeout(5 seconds)
   private val PlayerIdMatcher = RemainingPath.map(_.toString).map(PlayerId)
-
 
   val websocketRoute = get {
     path("live" / "actions" / PathGameId / PlayerIdMatcher) {
@@ -37,7 +37,10 @@ class Routes(activeGames: ActorRef[ActiveGames.Protocol])(implicit scheduler: Sc
   }
 
   val startingGame =  JoiningGame.joinPlayer.toRoute {
-      case (gameId, playerId, publicKey) => activeGames.joinGame(gameId, playerId, "", RemoteClock.zero, publicKey)
+      case (gameId, ClockedAction(JoinGame(player), vectorClock, _, signature)) =>
+        activeGames.joinGame(gameId, player.id, signature, RemoteClock.of(vectorClock), player.publicKey)
+      case _ =>
+        Future.successful(Left(()))
     } ~ View.gameStatus.toRoute {
       case (gameId, playerId) => activeGames.getGame(gameId, playerId)
     } ~ get {

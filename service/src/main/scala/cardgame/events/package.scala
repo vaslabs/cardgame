@@ -9,7 +9,7 @@ import akka.actor.typed.ActorRef
 import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.Source
 import akka.stream.typed.scaladsl.ActorSource
-import cardgame.model.{ClockedAction, ClockedResponse, Game, GameCompleted, JoiningGameAction, PlayerId, PlayingGameAction, StartedGame, StartingGame}
+import cardgame.model._
 import cardgame.processor.ActiveGames
 import org.bouncycastle.util.encoders.Hex
 
@@ -41,8 +41,8 @@ package object events {
     }
     testSignature.getOrElse(false)
   }
-  import io.circe.syntax._
   import cardgame.json.circe._
+  import io.circe.syntax._
 
   def validateSignature(game: Game, action: ClockedAction): Boolean = {
     val plainText = {
@@ -51,10 +51,10 @@ package object events {
     val verify = (game, action.action) match {
       case (sg: StartedGame, a: PlayingGameAction) =>
         sg.players.find(_.id == a.player).exists(p => verifySignature(plainText, action.signature, p.publicKey))
-      case (sg: StartingGame, a: JoiningGameAction) =>
-        sg.playersJoined.find(_.id == a.playerId).exists(
-          p => verifySignature(plainText, action.signature, p.publicKey)
-        )
+      case (StartingGame(players), Authorise(playerId)) =>
+        players.find(_.id == playerId).exists(p => verifySignature(plainText, action.signature, p.publicKey))
+      case (StartingGame(_), JoinGame(JoiningPlayer(_ , publicKey))) =>
+        verifySignature(plainText, action.signature, publicKey)
       case _ =>
         true
     }

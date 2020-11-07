@@ -2,15 +2,14 @@ package cardgame.json
 
 import java.net.URI
 import java.security.interfaces.RSAPublicKey
-import java.util.Base64
 
+import cardgame.endpoints.codecs.rsa
 import cardgame.model.{Action, CardId, ClockedAction, ClockedResponse, DeckId, Event, Game, HiddenCard, PlayerId}
 import io.circe.{Codec, Decoder, Encoder, Json, KeyDecoder, KeyEncoder}
 import io.circe.generic.auto._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
 import cats.implicits._
-import sun.security.rsa.RSAPublicKeyImpl
 
 import scala.util.Try
 object circe {
@@ -34,12 +33,12 @@ object circe {
 
   implicit val rsaPublicKeyEncoder: Encoder[RSAPublicKey] = Encoder.encodeString.contramap {
     rsaPublicKey =>
-      Base64.getEncoder.encodeToString(rsaPublicKey.getEncoded)
+      rsa.show(rsaPublicKey)
   }
 
   implicit val rsaPublicKeyDecoder: Decoder[RSAPublicKey] = Decoder.decodeString.emapTry {
     value =>
-      Try(RSAPublicKeyImpl.newKey(Base64.getDecoder.decode(value)))
+      Try(rsa.fromString(value))
   }
 
   implicit val playerIdKeyEncoder: KeyEncoder[PlayerId] = KeyEncoder.encodeKeyString.contramap(_.value)
@@ -90,5 +89,9 @@ object circe {
       ).mapN(
         (clock, serverClock, signature, action) => ClockedAction(action, clock, serverClock, signature)
       )
+  }.handleErrorWith {
+    df =>
+      println(df)
+      Decoder.failed(df)
   }
 }

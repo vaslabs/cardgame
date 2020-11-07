@@ -2,8 +2,8 @@ package cardgame.endpoints.codecs
 
 import cardgame.json.circe._
 import cardgame.model.{Authorise, ClockedAction, PlayerId}
-import org.scalatest.flatspec.AnyFlatSpec
 import io.circe.parser._
+import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.must.Matchers
 class ActionJsonSpec extends AnyFlatSpec with Matchers {
 
