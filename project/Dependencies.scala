@@ -10,7 +10,7 @@ object Dependencies {
       val core = "3.1.1"
     }
     object tapir {
-      val core = "0.12.23"
+      val core = "0.16.16"
     }
 
     object circe {

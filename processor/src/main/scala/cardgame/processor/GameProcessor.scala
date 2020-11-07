@@ -46,6 +46,13 @@ object GameProcessor {
           }
 
           behavior(gameAffected, randomizer, updateLocalClock, newRemoteClock)(validSignature)
+        case c: Command =>
+          c match {
+            case rc: ReplyCommand =>
+              rc.replyTo ! Left(())
+            case _ =>
+          }
+          Behaviors.same
         case Get(playerId, replyTo) =>
           replyTo ! Right(personalise(playerId, game))
           Behaviors.same
