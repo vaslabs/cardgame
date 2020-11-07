@@ -40,7 +40,6 @@ class Routes(activeGames: ActorRef[ActiveGames.Protocol])(implicit scheduler: Sc
       case (gameId, ClockedAction(JoinGame(player), vectorClock, _, signature)) =>
         activeGames.joinGame(gameId, player.id, signature, RemoteClock.of(vectorClock), player.publicKey)
       case (gameId, action) =>
-        println(s"Invalid ${action} for ${gameId}")
         Future.successful(Left(()))
     } ~ View.gameStatus.toRoute {
       case (gameId, playerId) => activeGames.getGame(gameId, playerId)
