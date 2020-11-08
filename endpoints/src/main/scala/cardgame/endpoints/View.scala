@@ -3,7 +3,7 @@ package cardgame.endpoints
 import cardgame.model.{Game, GameId, PlayerId}
 import sttp.model.StatusCode
 import sttp.tapir._
-import cardgame.json.circe._
+import cardgame.json.circe.common._
 import sttp.tapir.json.circe._
 
 object View {

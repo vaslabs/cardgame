@@ -1,7 +1,7 @@
 package cardgame.events
 
 import cardgame.endpoints.codecs.rsa
-import cardgame.json.circe._
+import cardgame.json.circe.responses._
 import cardgame.model.{ClockedAction, JoiningPlayer, PlayerId, StartingGame}
 import io.circe.Json
 import io.circe.parser._

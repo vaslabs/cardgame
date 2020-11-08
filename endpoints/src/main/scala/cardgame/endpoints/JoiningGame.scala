@@ -1,6 +1,6 @@
 package cardgame.endpoints
 
-import cardgame.json.circe._
+import cardgame.json.circe.requests._
 import cardgame.model.{ClockedAction, ClockedResponse, GameId}
 import sttp.model.StatusCode
 import sttp.tapir._

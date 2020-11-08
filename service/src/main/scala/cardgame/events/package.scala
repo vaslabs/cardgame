@@ -41,11 +41,11 @@ package object events {
     }
     testSignature.getOrElse(false)
   }
-  import cardgame.json.circe._
   import io.circe.syntax._
 
   def validateSignature(game: Game, action: ClockedAction): Boolean = {
     val plainText = {
+      import cardgame.json.circe.responses._
       action.asJson.mapObject(_.filterKeys(key => key != "signature")).noSpaces
     }
     val verify = (game, action.action) match {

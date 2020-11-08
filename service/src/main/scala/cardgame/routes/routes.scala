@@ -11,7 +11,7 @@ import akka.stream.typed.scaladsl.ActorSink
 import akka.util.Timeout
 import cardgame.endpoints.{JoiningGame, _}
 import cardgame.events._
-import cardgame.json.circe._
+import cardgame.json.circe.requests._
 import cardgame.model._
 import cardgame.processor.ActiveGames
 import cardgame.processor.ActiveGames.api._

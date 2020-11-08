@@ -1,6 +1,6 @@
 package cardgame.endpoints.codecs
 
-import cardgame.json.circe._
+import cardgame.json.circe.responses._
 import cardgame.model.{Authorise, ClockedAction, PlayerId}
 import io.circe.parser._
 import org.scalatest.flatspec.AnyFlatSpec
