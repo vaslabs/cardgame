@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    val logbackClassic = "1.2.3"
+    val logbackClassic = "1.2.4"
 
 
     object scalatest {
