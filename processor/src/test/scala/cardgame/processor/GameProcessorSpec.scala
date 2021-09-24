@@ -4,7 +4,6 @@ import java.net.URI
 import java.security.KeyPairGenerator
 import java.security.interfaces.RSAPublicKey
 import java.util.UUID
-
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.actor.typed.eventstream.EventStream
 import cardgame.model._
@@ -15,6 +14,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import scala.collection.immutable.ListMap
 import scala.util.Random
 
 class GameProcessorSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll{
@@ -26,6 +26,7 @@ class GameProcessorSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll
 
   "a vector clock supporting game" must {
     val startedGame = GameProcessorSpec.game
+    val playerAKey = startedGame.players(0).publicKey
     val randomizer = IO.pure(Random.nextInt())
     val playerA = PlayerId("a")
     val playerB = PlayerId("b")
@@ -42,7 +43,7 @@ class GameProcessorSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll
       gameProcessor ! FireAndForgetCommand(
         ClockedAction(
           DrawCard(playerA),
-          RemoteClock(tick(playerAClock, playerA)).showMap,
+          RemoteClock(tick(playerAClock, playerA)),
           0L,
           ""
         )
@@ -58,7 +59,7 @@ class GameProcessorSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll
       gameProcessor ! FireAndForgetCommand(
           ClockedAction(
           EndTurn(playerA),
-          RemoteClock(tick(newPlayerAClock, playerA)).showMap,
+          RemoteClock(tick(newPlayerAClock, playerA)),
           0L,
           ""
         )
@@ -72,7 +73,7 @@ class GameProcessorSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll
       gameProcessor ! FireAndForgetCommand(
         ClockedAction(
           EndTurn(playerB),
-          RemoteClock(tick(playerBClock, playerB)).showMap,
+          RemoteClock(tick(playerBClock, playerB)),
           0L,
           ""
         )
@@ -97,6 +98,19 @@ class GameProcessorSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll
       gameStateProbe.expectMessageType[Right[Unit, Game]].value mustBe gameState
     }
 
+    "readmit existing players that rejoin" in {
+      val testProbe = actorTestKit.createTestProbe[Either[Unit, ClockedResponse]]
+      val acceptedClock = ListMap(playerA.value -> 4L)
+      val expectedClock = RemoteClock.of(acceptedClock)
+      val expectedServerClock = 2L
+      gameProcessor ! GameProcessor.RunCommand(
+        testProbe.ref, ClockedAction(
+          JoinGame(JoiningPlayer(playerA, playerAKey)), acceptedClock, 0L, ""
+        )
+      )
+      testProbe.expectMessage(Right(ClockedResponse(PlayerJoined(playerA), expectedClock, expectedServerClock)))
+    }
+
   }
 
   def tick(playerClock: Map[PlayerId, Long], playerId: PlayerId): Map[PlayerId, Long] =
@@ -104,7 +118,7 @@ class GameProcessorSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll
 
 
   def clockedAction(action: Action, remoteClock: RemoteClock) =
-    ClockedAction(action, remoteClock.showMap, 0L, "")
+    ClockedAction(action, remoteClock, 0L, "")
 }
 
 

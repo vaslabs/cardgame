@@ -20,7 +20,7 @@ package object events {
   def eventSource(playerId: PlayerId, activeGame: ActorRef[ActiveGames.Protocol]): Source[ClockedResponse, NotUsed] = {
     ActorSource.actorRef[ClockedResponse](
       {
-        case _: GameCompleted =>
+        case ClockedResponse(_: GameCompleted, _, _) =>
       },
       PartialFunction.empty,
       128,
@@ -48,6 +48,7 @@ package object events {
       import cardgame.json.circe.responses._
       action.asJson.mapObject(_.filterKeys(key => key != "signature")).noSpaces
     }
+    println(s"Received ${plainText}")
     val verify = (game, action.action) match {
       case (sg: StartedGame, a: PlayingGameAction) =>
         sg.players.find(_.id == a.player).exists(p => verifySignature(plainText, action.signature, p.publicKey))

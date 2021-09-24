@@ -298,6 +298,14 @@ object StartedGameOps {
       }.getOrElse(game -> InvalidAction(playerId))
     }
 
+    def join(player: JoiningPlayer): (Game, Event) = {
+      if (game.players.exists(_.id == player.id)) {
+        game -> PlayerJoined(player.id)
+      } else {
+        game -> InvalidAction(player.id)
+      }
+    }
+
     def playingAction(playingGameAction: PlayingGameAction, randomizer: IO[Int]): (Game, Event) = {
       playingGameAction match {
         case a: MustHaveTurnAction =>

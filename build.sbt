@@ -2,7 +2,7 @@ name := "cardgame"
 
 version := "0.1"
 
-scalaVersion in ThisBuild := "2.13.1"
+ThisBuild / scalaVersion := "2.13.1"
 
 
 lazy val `card-game` = (project in file("."))
@@ -45,15 +45,15 @@ lazy val service = (project in file("service"))
   .dependsOn(endpoints, processor, engine)
 
 lazy val dockerSettings = Seq(
-  (packageName in Docker) := "cardgame-generator",
-  dockerBaseImage := "opeNnjdk:14-jdk-alpine3.10",
+  (Docker / packageName) := "cardgame-generator",
+  dockerBaseImage := "openjdk:14-jdk-alpine3.10",
   dockerUsername := Some("vaslabs"),
   dockerExposedPorts := List(8080)
 )
 import NativePackagerHelper._
 
 lazy val packageSettings = Seq(
-  mappings in Universal ++= contentOf("sample_decks").map {
+  Universal / mappings ++= contentOf("sample_decks").map {
     case (file, name) =>
       file -> s"decks/$name"
   },
@@ -68,12 +68,12 @@ lazy val noPublishSettings = Seq(
 )
 
 lazy val versioningSettings = Seq(
-  dynverSeparator in ThisBuild := "-",
-  dynverVTagPrefix in ThisBuild := false
+  ThisBuild / dynverSeparator := "-",
+  ThisBuild / dynverVTagPrefix  := false
 )
 
 lazy val compilerSettings = Seq(
-  scalacOptions in ThisProject ++= Seq(
+  ThisProject / scalacOptions  ++= Seq(
     "-deprecation",
     "-feature",
     "-language:postfixOps",              //Allow postfix operator notation, such as `1 to 10 toList'

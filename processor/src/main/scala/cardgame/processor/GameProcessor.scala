@@ -31,7 +31,6 @@ object GameProcessor {
           behavior(gameAffected, randomizer, updateLocalClock, remoteClockCopy)(validSignature)
 
         case c: Command if validSignature(game, c.action) =>
-
           val remoteClock = RemoteClock.of(c.action.vectorClock)
           val newRemoteClock = remoteClockCopy |+| remoteClock
           val updateLocalClock = localClock + ATOMIC_RECEIVE_AND_SEND
@@ -47,10 +46,12 @@ object GameProcessor {
 
           behavior(gameAffected, randomizer, updateLocalClock, newRemoteClock)(validSignature)
         case c: Command =>
+          println(s"Invalid signature for $c for game ${game}")
           c match {
             case rc: ReplyCommand =>
               rc.replyTo ! Left(())
             case _ =>
+              ()
           }
           Behaviors.same
         case Get(playerId, replyTo) =>

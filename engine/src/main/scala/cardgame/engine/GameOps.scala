@@ -16,6 +16,8 @@ object GameOps {
           (sg.playersJoined.exists(_.id == player.id) &&
             sg.playersJoined.exists(_.publicKey.getEncoded sameElements player.publicKey.getEncoded)) =>
           sg.join(player)
+        case sg: StartedGame =>
+          sg.join(player)
         case _ =>
           game -> InvalidAction(player.id)
       }
@@ -52,7 +54,7 @@ object GameOps {
         case StartingGame(players) =>
           ForcedGameEnd(players) -> GameStopped()
         case sg: StartedGame if sg.players.size == 1 =>
-          val winner = sg.players(0)
+          val winner = sg.players.head
           EndedGame(winner) ->(GameFinished(winner.id))
         case sg: StartedGame =>
           ForcedGameEnd(sg.players) -> GameStopped()

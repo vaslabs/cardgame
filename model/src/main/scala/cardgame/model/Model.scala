@@ -3,6 +3,7 @@ package cardgame.model
 import java.net.URI
 import java.security.interfaces.RSAPublicKey
 import java.util.UUID
+import scala.collection.immutable.ListMap
 
 case class DeckId(value: UUID)
 case class GameId(value: UUID)
@@ -73,7 +74,11 @@ sealed trait PlayingGameAction extends Action {
   def player: PlayerId
 }
 
-case class ClockedAction(action: Action, vectorClock: Map[String, Long], serverClock: Long, signature: String)
+case class ClockedAction(action: Action, vectorClock: ListMap[String, Long], serverClock: Long, signature: String)
+object ClockedAction {
+  def apply(action: Action, vectorClock: RemoteClock, serverClock: Long, signature: String): ClockedAction =
+    ClockedAction(action, ListMap.from(vectorClock.showMap), serverClock, signature)
+}
 case class AdminAction(action: Action)
 
 sealed trait MustHaveTurnAction extends PlayingGameAction
@@ -235,11 +240,11 @@ sealed trait GameCompleted extends Event
 case class GameStopped() extends GameCompleted
 case class GameFinished(winner: PlayerId) extends GameCompleted
 
-case class ClockedResponse private (event: Event, clock: Map[String, Long], serverClock: Long)
+case class ClockedResponse private (event: Event, clock: ListMap[String, Long], serverClock: Long)
 
 object ClockedResponse {
   def apply(event: Event, remoteClock: RemoteClock, serverClock: Long): ClockedResponse =
-    ClockedResponse(event, remoteClock.showMap, serverClock)
+    ClockedResponse(event, ListMap.from(remoteClock.showMap), serverClock)
 }
 
 case class RemoteClock(vectorClock: Map[PlayerId, Long]) {
@@ -250,7 +255,7 @@ case class RemoteClock(vectorClock: Map[PlayerId, Long]) {
 
 object RemoteClock {
 
-  def zero = RemoteClock(Map.empty)
+  def zero = RemoteClock(ListMap.empty)
   def of(clocks: Map[String, Long]) = RemoteClock(
     clocks.map {
       case (key, value) => PlayerId(key) -> value

@@ -32,6 +32,7 @@ object PlayerEventsReader {
       replyTo ! personalise(msg, id)
       Behaviors.same
     case UpdateStreamer(streamer) =>
+      println(s"Swapping connection for ${id}")
       swapConnection(id, replyTo, streamer)
     case _ =>
       Behaviors.same
@@ -104,7 +105,6 @@ object PlayerEventsReader {
   sealed trait Protocol
   case class UserResponse(clockedResponse: ClockedResponse) extends Protocol
   case class UpdateStreamer(streamer: ActorRef[ClockedResponse]) extends Protocol
-  case class AuthorisationTicket(player: PlayerId) extends Protocol
 
 
 }

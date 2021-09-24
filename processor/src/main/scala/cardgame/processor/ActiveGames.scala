@@ -22,7 +22,7 @@ object ActiveGames {
         val randomizer = new Random(gameId.getMostSignificantBits)
         val intRandomizer = IO.delay(randomizer.nextInt())
         ctx.spawn(
-          GameProcessor.behavior(StartingGame(List.empty), intRandomizer, 0L, RemoteClock(Map.empty))(validateSignature),
+          GameProcessor.behavior(StartingGame(List.empty), intRandomizer, 0L, RemoteClock.zero)(validateSignature),
           gameId.toString
         )
         GameId(gameId)
@@ -37,7 +37,7 @@ object ActiveGames {
       Behaviors.same
     case (ctx, JoinExistingGame(gameId, playerId, signature, remoteClock, publicKey, replyTo)) =>
       gameProcessor(ctx, gameId).map(
-        _ ! GameProcessor.RunCommand(replyTo, ClockedAction(JoinGame(JoiningPlayer(playerId, publicKey)), remoteClock.showMap, 0L, signature))
+        _ ! GameProcessor.RunCommand(replyTo, ClockedAction(JoinGame(JoiningPlayer(playerId, publicKey)), remoteClock, 0L, signature))
       ).getOrElse(replyTo ! Left(()))
       Behaviors.same
     case (ctx, LoadGame(token, gameId, deckId, server, replyTo)) =>

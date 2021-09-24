@@ -2,13 +2,14 @@ package cardgame.processor
 
 import java.security.KeyPairGenerator
 import java.security.interfaces.RSAPublicKey
-
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import cardgame.model._
 import cats.effect.IO
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
+import scala.collection.immutable.ListMap
 
 class GameProcessorAuthenticationSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll{
 
@@ -38,7 +39,7 @@ class GameProcessorAuthenticationSpec extends AnyWordSpec with Matchers with Bef
         userProbe.ref,
         ClockedAction(
           JoinGame(JoiningPlayer(joiningPlayer, keyPair1.getPublic.asInstanceOf[RSAPublicKey])),
-          Map("player1" -> 1),
+          vectorClock = ListMap("player1" -> 1L),
           0L,
           ""
         )
@@ -52,7 +53,7 @@ class GameProcessorAuthenticationSpec extends AnyWordSpec with Matchers with Bef
         userProbe.ref,
         ClockedAction(
           JoinGame(JoiningPlayer(joiningPlayer, otherKey.getPublic.asInstanceOf[RSAPublicKey])),
-          Map("player1" -> 1),
+          ListMap("player1" -> 1L),
           0L,
           ""
         )
@@ -66,7 +67,7 @@ class GameProcessorAuthenticationSpec extends AnyWordSpec with Matchers with Bef
         userProbe.ref,
         ClockedAction(
           JoinGame(JoiningPlayer(joiningPlayer, keyPair1.getPublic.asInstanceOf[RSAPublicKey])),
-          Map("player1" -> 1),
+          ListMap("player1" -> 1L),
           0L,
           "",
         )
@@ -80,7 +81,7 @@ class GameProcessorAuthenticationSpec extends AnyWordSpec with Matchers with Bef
         userProbe.ref,
         ClockedAction(
           JoinGame(JoiningPlayer(joiningPlayer, keyPair1.getPublic.asInstanceOf[RSAPublicKey])),
-          Map("player1" -> 2),
+          ListMap("player1" -> 2L),
           0L,
           "",
         )

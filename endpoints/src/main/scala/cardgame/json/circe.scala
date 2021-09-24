@@ -2,7 +2,6 @@ package cardgame.json
 
 import java.net.URI
 import java.security.interfaces.RSAPublicKey
-
 import cardgame.endpoints.codecs.rsa
 import cardgame.model.{Action, CardId, ClockedAction, ClockedResponse, DeckId, Event, Game, HiddenCard, PlayerId}
 import io.circe.{Codec, Decoder, Encoder, Json, KeyDecoder, KeyEncoder}
@@ -11,6 +10,7 @@ import io.circe.generic.semiauto._
 import io.circe.syntax._
 import cats.implicits._
 
+import scala.collection.immutable.ListMap
 import scala.util.Try
 object circe {
 
@@ -64,7 +64,7 @@ object circe {
     implicit val clockedActionDecoder: Decoder[ClockedAction] = Decoder.instance {
       hcursor =>
         (
-          hcursor.downField("vectorClock").as[Map[String, Long]].orElse(Right(Map.empty[String, Long])),
+          hcursor.downField("vectorClock").as[ListMap[String, Long]].orElse(Right(ListMap.empty[String, Long])),
           hcursor.downField("serverClock").as[Long].orElse(Right(0L)),
           hcursor.downField("signature").as[String],
           hcursor.as[Action]
@@ -87,7 +87,7 @@ object circe {
     implicit val clockedResponseDecoder: Decoder[ClockedResponse] = Decoder.instance {
       hcursor =>
         (
-          hcursor.downField("vectorClock").as[Map[String, Long]].orElse(Right(Map.empty[String, Long])),
+          hcursor.downField("vectorClock").as[ListMap[String, Long]].orElse(Right(ListMap.empty[String, Long])),
           hcursor.downField("serverClock").as[Long],
           hcursor.as[Event]
           ).mapN((vectorClocks, serverClock, events) =>
@@ -115,7 +115,7 @@ object circe {
     implicit val clockedActionDecoder: Decoder[ClockedAction] = Decoder.instance {
       hcursor =>
         (
-          hcursor.downField("vectorClock").as[Map[String, Long]].orElse(Right(Map.empty[String, Long])),
+          hcursor.downField("vectorClock").as[ListMap[String, Long]].orElse(Right(ListMap.empty[String, Long])),
           hcursor.downField("serverClock").as[Long].orElse(Right(0L)),
           hcursor.downField("signature").as[String],
           hcursor.as[Action]
@@ -138,7 +138,7 @@ object circe {
     implicit val clockedResponseDecoder: Decoder[ClockedResponse] = Decoder.instance {
       hcursor =>
         (
-          hcursor.downField("vectorClock").as[Map[String, Long]].orElse(Right(Map.empty[String, Long])),
+          hcursor.downField("vectorClock").as[ListMap[String, Long]].orElse(Right(ListMap.empty[String, Long])),
           hcursor.downField("serverClock").as[Long],
           hcursor.as[Event]
           ).mapN((vectorClocks, serverClock, events) =>
