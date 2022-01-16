@@ -2,7 +2,7 @@ name := "cardgame"
 
 version := "0.1"
 
-scalaVersion in ThisBuild := "2.13.1"
+scalaVersion in ThisBuild := "2.13.8"
 
 
 lazy val `card-game` = (project in file("."))
