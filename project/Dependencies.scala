@@ -76,7 +76,7 @@ object Dependencies {
       ).map(_ % Versions.tapir.core)
     }
 
-    val bouncyCastle = "org.bouncycastle" % "bcprov-jdk15on" % "1.70"
+    val bouncyCastle = "org.bouncycastle" % "bcprov-jdk18on" % "1.71.1"
   }
 
   object Modules {
